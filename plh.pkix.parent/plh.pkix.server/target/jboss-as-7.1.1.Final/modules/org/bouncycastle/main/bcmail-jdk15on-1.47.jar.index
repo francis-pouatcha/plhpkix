@@ -1,0 +1,10 @@
+org/bouncycastle
+
+org/bouncycastle/mail/smime/handlers
+org/bouncycastle/mail/smime/util
+org/bouncycastle/mail/smime/examples
+org/bouncycastle/mail/smime/validator
+org/bouncycastle/mail
+org
+org/bouncycastle/mail/smime
+META-INF

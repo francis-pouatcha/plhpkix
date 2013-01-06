@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.adorys.plh.pkix.server.cmp.init.server.ServerInitializerTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.193 sec

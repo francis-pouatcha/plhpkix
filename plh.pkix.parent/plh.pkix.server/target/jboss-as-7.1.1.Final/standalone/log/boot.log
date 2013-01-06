@@ -1,0 +1,97 @@
+01:01:50,558 INFO  [org.jboss.modules] JBoss Modules version 1.1.1.GA
+01:01:50,813 INFO  [org.jboss.msc] JBoss MSC version 1.0.2.GA
+01:01:50,875 INFO  [org.jboss.as] JBAS015899: JBoss AS 7.1.1.Final "Brontes" starting
+01:01:50,878 DEBUG [org.jboss.as.config] Configured system properties:
+	awt.toolkit = sun.awt.X11.XToolkit
+	file.encoding = UTF-8
+	file.encoding.pkg = sun.io
+	file.separator = /
+	java.awt.graphicsenv = sun.awt.X11GraphicsEnvironment
+	java.awt.printerjob = sun.print.PSPrinterJob
+	java.class.path = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/jboss-modules.jar
+	java.class.version = 51.0
+	java.endorsed.dirs = /usr/lib/jvm/jdk1.7.0/jre/lib/endorsed
+	java.ext.dirs = /usr/lib/jvm/jdk1.7.0/jre/lib/ext:/usr/java/packages/lib/ext
+	java.home = /usr/lib/jvm/jdk1.7.0/jre
+	java.io.tmpdir = /tmp
+	java.library.path = /usr/lib/jvm/jdk1.7.0/jre/lib/i386/server:/usr/lib/jvm/jdk1.7.0/jre/lib/i386:/usr/lib/jvm/jdk1.7.0/jre/../lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386/server:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/../lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386/client:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386::/usr/java/packages/lib/i386:/lib:/usr/lib
+	java.runtime.name = Java(TM) SE Runtime Environment
+	java.runtime.version = 1.7.0-b147
+	java.specification.name = Java Platform API Specification
+	java.specification.vendor = Oracle Corporation
+	java.specification.version = 1.7
+	java.util.logging.manager = org.jboss.logmanager.LogManager
+	java.vendor = Oracle Corporation
+	java.vendor.url = http://java.oracle.com/
+	java.vendor.url.bug = http://bugreport.sun.com/bugreport/
+	java.version = 1.7.0
+	java.vm.info = mixed mode
+	java.vm.name = Java HotSpot(TM) Server VM
+	java.vm.specification.name = Java Virtual Machine Specification
+	java.vm.specification.vendor = Oracle Corporation
+	java.vm.specification.version = 1.7
+	java.vm.vendor = Oracle Corporation
+	java.vm.version = 21.0-b17
+	javax.management.builder.initial = org.jboss.as.jmx.PluggableMBeanServerBuilder
+	javax.xml.datatype.DatatypeFactory = __redirected.__DatatypeFactory
+	javax.xml.parsers.DocumentBuilderFactory = __redirected.__DocumentBuilderFactory
+	javax.xml.parsers.SAXParserFactory = __redirected.__SAXParserFactory
+	javax.xml.stream.XMLEventFactory = __redirected.__XMLEventFactory
+	javax.xml.stream.XMLInputFactory = __redirected.__XMLInputFactory
+	javax.xml.stream.XMLOutputFactory = __redirected.__XMLOutputFactory
+	javax.xml.transform.TransformerFactory = __redirected.__TransformerFactory
+	javax.xml.validation.SchemaFactory:http://www.w3.org/2001/XMLSchema = __redirected.__SchemaFactory
+	javax.xml.xpath.XPathFactory:http://java.sun.com/jaxp/xpath/dom = __redirected.__XPathFactory
+	jboss.bundles.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/bundles
+	jboss.home.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final
+	jboss.host.name = francis-ux21e
+	jboss.modules.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/modules
+	jboss.node.name = francis-ux21e
+	jboss.qualified.host.name = francis-ux21e
+	jboss.server.base.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone
+	jboss.server.config.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone/configuration
+	jboss.server.data.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone/data
+	jboss.server.deploy.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone/data/content
+	jboss.server.log.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone/log
+	jboss.server.name = francis-ux21e
+	jboss.server.temp.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/standalone/tmp
+	line.separator = 
+
+	logging.configuration = file:target/jboss-as-7.1.1.Final/standalone/configuration/logging.properties
+	module.path = target/jboss-as-7.1.1.Final/modules
+	org.jboss.boot.log.file = target/jboss-as-7.1.1.Final/standalone/log/boot.log
+	org.xml.sax.driver = __redirected.__XMLReaderFactory
+	os.arch = i386
+	os.name = Linux
+	os.version = 3.2.0-22-generic-pae
+	path.separator = :
+	sun.arch.data.model = 32
+	sun.boot.class.path = /usr/lib/jvm/jdk1.7.0/jre/lib/resources.jar:/usr/lib/jvm/jdk1.7.0/jre/lib/rt.jar:/usr/lib/jvm/jdk1.7.0/jre/lib/sunrsasign.jar:/usr/lib/jvm/jdk1.7.0/jre/lib/jsse.jar:/usr/lib/jvm/jdk1.7.0/jre/lib/jce.jar:/usr/lib/jvm/jdk1.7.0/jre/lib/charsets.jar:/usr/lib/jvm/jdk1.7.0/jre/classes
+	sun.boot.library.path = /usr/lib/jvm/jdk1.7.0/jre/lib/i386
+	sun.cpu.endian = little
+	sun.cpu.isalist = 
+	sun.desktop = gnome
+	sun.io.unicode.encoding = UnicodeLittle
+	sun.java.command = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/jboss-modules.jar -mp target/jboss-as-7.1.1.Final/modules -jaxpmodule javax.xml.jaxp-provider org.jboss.as.standalone -server-config standalone.xml
+	sun.java.launcher = SUN_STANDARD
+	sun.jnu.encoding = UTF-8
+	sun.management.compiler = HotSpot Tiered Compilers
+	sun.os.patch.level = unknown
+	user.country = US
+	user.dir = /home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server
+	user.home = /home/fpo
+	user.language = en
+	user.name = francis
+	user.timezone = America/New_York
+01:01:50,892 DEBUG [org.jboss.as.config] VM Arguments: -Xmx512m -XX:MaxPermSize=128m -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y -ea -Djboss.home.dir=target/jboss-as-7.1.1.Final -Dorg.jboss.boot.log.file=target/jboss-as-7.1.1.Final/standalone/log/boot.log -Dlogging.configuration=file:target/jboss-as-7.1.1.Final/standalone/configuration/logging.properties -Djboss.modules.dir=/home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/modules -Djboss.bundles.dir=/home/fpo/dev/plh/plh.pkix.parent/plh.pkix.server/target/jboss-as-7.1.1.Final/bundles 
+01:01:51,848 INFO  [org.xnio] XNIO Version 3.0.3.GA
+01:01:51,851 INFO  [org.jboss.as.server] JBAS015888: Creating http management service using socket-binding (management-http)
+01:01:51,858 INFO  [org.xnio.nio] XNIO NIO Implementation Version 3.0.3.GA
+01:01:51,868 INFO  [org.jboss.remoting] JBoss Remoting version 3.2.3.GA
+01:01:51,882 INFO  [org.jboss.as.logging] JBAS011502: Removing bootstrap log handlers
+01:02:05,834 INFO  [org.jboss.as.logging] JBAS011503: Restored bootstrap log handlers
+01:02:05,866 INFO  [org.apache.coyote.http11.Http11Protocol] Pausing Coyote HTTP/1.1 on http--127.0.0.1-8080
+01:02:05,867 INFO  [org.apache.coyote.http11.Http11Protocol] Stopping Coyote HTTP/1.1 on http--127.0.0.1-8080
+01:02:05,868 INFO  [com.arjuna.ats.jbossatx] ARJUNA032018: Destroying TransactionManagerService
+01:02:05,895 INFO  [com.arjuna.ats.jbossatx] ARJUNA032014: Stopping transaction recovery manager
+01:02:05,903 INFO  [org.jboss.as] JBAS015950: JBoss AS 7.1.1.Final "Brontes" stopped in 119ms
