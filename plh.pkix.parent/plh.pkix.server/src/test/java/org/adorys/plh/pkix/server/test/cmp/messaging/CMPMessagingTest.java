@@ -29,8 +29,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ByteArrayEntity;
 import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.cmp.PKIMessage;
@@ -160,61 +158,4 @@ public class CMPMessagingTest {
 			Assert.fail("Response authenticity could not be verified");
 		}
 	}
-
-	@Test
-	public void testCmpFetch() throws OperatorCreationException, GeneralSecurityException, IOException, CertException, CMPException {
-		PKIMessage pkiMessage = newMessage();
-		String addr = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME + "/fetch";
-		HttpResponse sendingRsponse = Request
-				.Post(addr)
-				.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE))
-				.execute()
-				.returnResponse();
-		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
-	}
-
-	@Test
-	public void testCmpReply() throws OperatorCreationException, GeneralSecurityException, IOException, CertException, CMPException {
-		PKIMessage pkiMessage = newMessage();
-		String addr = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME + "/rep";
-		HttpResponse sendingRsponse = Request
-			.Post(addr)
-			.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE))
-			.execute()
-			.returnResponse();
-		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
-	}
-	
-	private PKIMessage newMessage() throws OperatorCreationException, GeneralSecurityException, IOException, CertException, CMPException{
-        KeyPairGenerator kGen = KeyPairGenerator.getInstance("RSA", provider);
-
-        kGen.initialize(512);
-
-        KeyPair senderKeyPair = kGen.generateKeyPair();
-        X509CertificateHolder senderCert = V3CertificateUtils.makeSelfV3Certificate(senderKeyPair, "CN=Test Sender", senderKeyPair, "CN=Test Sender",provider);
-        byte[] senderCertKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(senderCert);
-
-        GeneralName sender = new GeneralName(new X500Name("CN=Test Sender"));
-        GeneralName recipient = new GeneralName(new X500Name("CN=Test Recip"));
-
-        KeyPair recipientKeyPair = kGen.generateKeyPair();
-        X509CertificateHolder recipientCert = V3CertificateUtils.makeSelfV3Certificate(recipientKeyPair, "CN=Test Recipient", recipientKeyPair, "CN=Test Recipient",provider);
-        byte[] recipientKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(recipientCert);
-        
-        ContentSigner senderSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(provider).build(senderKeyPair.getPrivate());
-		
-        byte[] transactionId = UUIDUtils.newUUIDAsBytes();
-        ProtectedPKIMessage mainMessage = new ProtectedPKIMessageBuilder(sender, recipient)
-                                                  .setBody(new PKIBody(PKIBody.TYPE_INIT_REP, CertRepMessage.getInstance(new DERSequence(new DERSequence()))))
-                                                  .addCMPCertificate(senderCert)
-                                                  .setMessageTime(new Date())
-                                                  .setRecipKID(recipientKeyIdentifier)
-                                                  .setSenderKID(senderCertKeyIdentifier)
-                                                  .setSenderNonce(UUIDUtils.newUUIDAsBytes())
-                                                  .setTransactionID(transactionId)
-                                                  .build(senderSigner);
-		return mainMessage.toASN1Structure();
-		
-	}
-
 }
