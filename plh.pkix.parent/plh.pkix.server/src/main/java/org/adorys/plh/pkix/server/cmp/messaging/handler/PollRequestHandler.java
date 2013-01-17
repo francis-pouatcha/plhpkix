@@ -11,10 +11,10 @@ import javax.ejb.Stateless;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.ErrorCommand;
-import org.adorys.plh.pkix.server.cmp.core.utils.GeneralNameHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.UUIDUtils;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
+import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
+import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityInitializer;
 import org.adorys.plh.pkix.server.cmp.messaging.CMPReplyData;

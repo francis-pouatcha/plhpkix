@@ -7,12 +7,12 @@ import java.util.List;
 
 import javax.ejb.EJB;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.keypair.KeyPairBuilder;
-import org.adorys.plh.pkix.server.cmp.core.stores.CertificateStore;
-import org.adorys.plh.pkix.server.cmp.core.stores.PrivateKeyHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.KeyIdUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.V3CertificateUtils;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.keypair.KeyPairBuilder;
+import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
+import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
+import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
+import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCert;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityInitializer;

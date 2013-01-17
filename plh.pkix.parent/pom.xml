@@ -7,6 +7,10 @@
   <name>Plooh pkix parent</name>
   <description>Plooh pkix parent</description>
   <modules>
+  	<module>plh.osgi.parent</module>
+  	<module>plh.pkix.core</module>
+  	<module>plh.pkix.core.test</module>
+  	<module>plh.jee.parent</module>
   	<module>plh.pkix.server</module>
   </modules>
 </project>

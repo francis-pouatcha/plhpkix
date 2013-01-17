@@ -12,10 +12,10 @@ import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.KeyIdUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.PrivateKeyUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.V3CertificateUtils;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
+import org.adorys.plh.pkix.core.cmp.utils.PrivateKeyUtils;
+import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 

@@ -5,10 +5,10 @@ import java.security.Provider;
 
 import javax.ws.rs.ApplicationPath;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.JaxRsActivator;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.adorys.plh.pkix.server.cmp.messaging.CMPMessaging;
+import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.jboss.shrinkwrap.api.ArchivePaths;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;

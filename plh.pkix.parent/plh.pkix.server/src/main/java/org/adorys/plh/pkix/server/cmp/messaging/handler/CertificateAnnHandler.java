@@ -5,7 +5,7 @@ import javax.ejb.Stateless;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;

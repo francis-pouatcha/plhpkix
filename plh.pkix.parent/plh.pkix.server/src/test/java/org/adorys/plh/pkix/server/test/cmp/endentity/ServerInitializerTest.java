@@ -4,7 +4,7 @@ import java.io.File;
 
 import javax.ejb.EJB;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityInitializer;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.bouncycastle.asn1.x500.X500Name;

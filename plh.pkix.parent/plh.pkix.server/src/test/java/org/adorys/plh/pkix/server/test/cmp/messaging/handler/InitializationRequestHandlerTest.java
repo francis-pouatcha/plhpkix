@@ -7,8 +7,8 @@ import java.security.Provider;
 
 import javax.ws.rs.ApplicationPath;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.JaxRsActivator;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
 import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.cmp.CMPException;

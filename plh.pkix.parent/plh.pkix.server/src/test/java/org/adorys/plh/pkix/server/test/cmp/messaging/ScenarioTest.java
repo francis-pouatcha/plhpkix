@@ -8,9 +8,9 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.stores.CertificateStore;
-import org.adorys.plh.pkix.server.cmp.core.stores.PendingCertAnn;
-import org.adorys.plh.pkix.server.cmp.core.utils.JaxRsActivator;
+import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
+import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
+import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.CertException;

@@ -13,14 +13,15 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.JaxRsActivator;
-import org.adorys.plh.pkix.server.cmp.core.utils.KeyIdUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.OptionalValidityHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.RequestVerifier;
-import org.adorys.plh.pkix.server.cmp.core.utils.UUIDUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.V3CertificateUtils;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
+import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
+import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
+import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
+import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
+import org.adorys.plh.pkix.server.test.cmp.ContentTypeHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -127,7 +128,7 @@ public class CMPMessagingServerTest {
 		
 		String addr = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME +"/req";
 		HttpResponse sendingRsponse = Request.Post(addr)
-				.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE))
+				.body(new ByteArrayEntity(pkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE))
 				.execute()
 				.returnResponse();
 		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
@@ -198,7 +199,7 @@ public class CMPMessagingServerTest {
                                                   .build(senderSigner);
 		PKIMessage pkiMessage = mainMessage.toASN1Structure();
 		HttpResponse sendingRsponse = Request.Post(deploymentUrl.toString()+ RESOURCE_PREFIX + "/messaging/send")
-					.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
+					.body(new ByteArrayEntity(pkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
 		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 
         byte[] transactionId2 = UUIDUtils.newUUIDAsBytes();
@@ -213,7 +214,7 @@ public class CMPMessagingServerTest {
                                                   .build(senderSigner);
 		pkiMessage = mainMessage.toASN1Structure();
 		sendingRsponse = Request.Post(deploymentUrl.toString()+ RESOURCE_PREFIX + "/messaging/send")
-					.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
+					.body(new ByteArrayEntity(pkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
 		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
         ContentSigner recipientSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(provider).build(recipientKeyPair.getPrivate());
@@ -228,7 +229,7 @@ public class CMPMessagingServerTest {
                                                   .build(recipientSigner);
 		PKIMessage recipPkiMessage = receiveMessage.toASN1Structure();
 		HttpResponse receivingResponse = Request.Post(deploymentUrl.toString()+ RESOURCE_PREFIX + "/messaging/receive")
-					.body(new ByteArrayEntity(recipPkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
+					.body(new ByteArrayEntity(recipPkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
 		Assert.assertTrue(receivingResponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		InputStream inputStream = receivingResponse.getEntity().getContent();
 
@@ -250,7 +251,7 @@ public class CMPMessagingServerTest {
                                                   .build(recipientSigner);
 		recipPkiMessage = receiveMessage.toASN1Structure();
 		receivingResponse = Request.Post(deploymentUrl.toString()+ RESOURCE_PREFIX + "/messaging/receive")
-					.body(new ByteArrayEntity(recipPkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
+					.body(new ByteArrayEntity(recipPkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute().returnResponse();
 		Assert.assertTrue(receivingResponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		inputStream = receivingResponse.getEntity().getContent();
 

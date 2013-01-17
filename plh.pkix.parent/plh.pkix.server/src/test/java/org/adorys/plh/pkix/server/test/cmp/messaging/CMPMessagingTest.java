@@ -13,15 +13,16 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.utils.JaxRsActivator;
-import org.adorys.plh.pkix.server.cmp.core.utils.KeyIdUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.OptionalValidityHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.RequestVerifier;
-import org.adorys.plh.pkix.server.cmp.core.utils.UUIDUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.V3CertificateUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.X509CertificateHolderCollection;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
+import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
+import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
+import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
+import org.adorys.plh.pkix.core.cmp.utils.X509CertificateHolderCollection;
+import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
+import org.adorys.plh.pkix.server.test.cmp.ContentTypeHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -123,7 +124,7 @@ public class CMPMessagingTest {
 		String addr = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME + "/req";
 		HttpResponse sendingRsponse = Request
 				.Post(addr)
-				.body(new ByteArrayEntity(pkiMessage.getEncoded(), PlhCMPSystem.PKIX_CMP_CONTENT_TYPE))
+				.body(new ByteArrayEntity(pkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE))
 				.execute()
 				.returnResponse();
 		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());

@@ -5,9 +5,9 @@
 
 	<parent>
 		<groupId>org.adorsys.plh</groupId>
-		<artifactId>parent</artifactId>
+		<artifactId>plh.jee.parent</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
-		<relativePath>../parent/pom.xml</relativePath>
+		<relativePath>../plh.jee.parent/pom.xml</relativePath>
 	</parent>
 
 	<artifactId>plh.pkix.server</artifactId>
@@ -16,6 +16,13 @@
 	<description>Plooh PKIX Server</description>
 
     <dependencies>
+		<dependency>
+			<groupId>org.adorsys.plh</groupId>
+			<artifactId>plh.pkix.core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>

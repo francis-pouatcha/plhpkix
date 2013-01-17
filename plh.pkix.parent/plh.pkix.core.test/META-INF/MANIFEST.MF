@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Test
+Bundle-SymbolicName: plh.pkix.core.test
+Bundle-Version: 0.0.1.qualifier
+Fragment-Host: plh.pkix.core;bundle-version="0.0.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Require-Bundle: org.junit4;bundle-version="4.8.1"

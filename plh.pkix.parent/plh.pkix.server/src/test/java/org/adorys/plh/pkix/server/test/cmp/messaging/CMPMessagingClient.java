@@ -11,32 +11,33 @@ import java.util.List;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adorys.plh.pkix.server.cmp.core.PendingRequestHolder;
-import org.adorys.plh.pkix.server.cmp.core.PlhCMPSystem;
-import org.adorys.plh.pkix.server.cmp.core.certann.CertificateAnnouncementBuilder;
-import org.adorys.plh.pkix.server.cmp.core.certann.CertificateAnnouncementHolder;
-import org.adorys.plh.pkix.server.cmp.core.certrequest.CertificationReplyProcessor;
-import org.adorys.plh.pkix.server.cmp.core.certrequest.CertificationRequestBuilder;
-import org.adorys.plh.pkix.server.cmp.core.certrequest.CertificationRequestProcessor;
-import org.adorys.plh.pkix.server.cmp.core.fetch.FetchRequestTypesValue;
-import org.adorys.plh.pkix.server.cmp.core.initrequest.InitializationRequestBuilder;
-import org.adorys.plh.pkix.server.cmp.core.initrequest.InitializationRequestHolder;
-import org.adorys.plh.pkix.server.cmp.core.initrequest.InitializationResponseProcessor;
-import org.adorys.plh.pkix.server.cmp.core.keypair.KeyPairBuilder;
-import org.adorys.plh.pkix.server.cmp.core.message.PkiMessageConformity;
-import org.adorys.plh.pkix.server.cmp.core.pollrequest.PollReplyProcessor;
-import org.adorys.plh.pkix.server.cmp.core.pollrequest.PollRequestBuilder;
-import org.adorys.plh.pkix.server.cmp.core.stores.CertificateStore;
-import org.adorys.plh.pkix.server.cmp.core.stores.PendingCertAnn;
-import org.adorys.plh.pkix.server.cmp.core.stores.PendingPollRequest;
-import org.adorys.plh.pkix.server.cmp.core.stores.PendingResponses;
-import org.adorys.plh.pkix.server.cmp.core.stores.PrivateKeyHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.ErrorCommand;
-import org.adorys.plh.pkix.server.cmp.core.utils.GeneralNameHolder;
-import org.adorys.plh.pkix.server.cmp.core.utils.KeyIdUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.RequestVerifier;
-import org.adorys.plh.pkix.server.cmp.core.utils.UUIDUtils;
-import org.adorys.plh.pkix.server.cmp.core.utils.X509CertificateHolderCollection;
+import org.adorys.plh.pkix.core.cmp.PendingRequestHolder;
+import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementBuilder;
+import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
+import org.adorys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
+import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
+import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
+import org.adorys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
+import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
+import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
+import org.adorys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
+import org.adorys.plh.pkix.core.cmp.keypair.KeyPairBuilder;
+import org.adorys.plh.pkix.core.cmp.message.PkiMessageConformity;
+import org.adorys.plh.pkix.core.cmp.pollrequest.PollReplyProcessor;
+import org.adorys.plh.pkix.core.cmp.pollrequest.PollRequestBuilder;
+import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
+import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
+import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
+import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
+import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
+import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
+import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
+import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
+import org.adorys.plh.pkix.core.cmp.utils.X509CertificateHolderCollection;
+import org.adorys.plh.pkix.server.test.cmp.ContentTypeHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -97,7 +98,7 @@ public class CMPMessagingClient {
 		HttpResponse sendingRsponse = Request
 				.Post(addressPrefix + REQSUFFIX)
 				.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-						PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+						ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 				.returnResponse();
 
 		if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK
@@ -180,7 +181,7 @@ public class CMPMessagingClient {
 		HttpResponse sendingRsponse = Request
 				.Post(addressPrefix + REQSUFFIX)
 				.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-						PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+						ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 				.returnResponse();
 		
 		
@@ -248,7 +249,7 @@ public class CMPMessagingClient {
 			HttpResponse sendingRsponse = Request
 					.Post(addressPrefix + REQSUFFIX)
 					.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-							PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+							ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 					.returnResponse();
 
 			if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK
@@ -322,7 +323,7 @@ public class CMPMessagingClient {
 		HttpResponse sendingRsponse = Request
 				.Post(addressPrefix + FETCHSUFFIX)
 				.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-						PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+						ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 				.returnResponse();
 
 		if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK
@@ -373,7 +374,7 @@ public class CMPMessagingClient {
 			HttpResponse sendingRsponse = Request
 					.Post(addressPrefix + REPSUFFIX)
 					.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-							PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+							ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 					.returnResponse();
 
 			if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK
@@ -409,7 +410,7 @@ public class CMPMessagingClient {
 			HttpResponse sendingRsponse = Request
 					.Post(addressPrefix + REQSUFFIX)
 					.body(new ByteArrayEntity(pkiMessage.getEncoded(),
-							PlhCMPSystem.PKIX_CMP_CONTENT_TYPE)).execute()
+							ContentTypeHolder.PKIX_CMP_CONTENT_TYPE)).execute()
 					.returnResponse();
 
 			if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK.getStatusCode())
