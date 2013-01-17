@@ -9,7 +9,7 @@
   <version>0.0.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
-    <name>Parent POM</name>
+    <name>Plooh JEE Parent</name>
     <description>Parent config for ploh pkix</description>
 
     <properties>

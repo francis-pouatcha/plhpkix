@@ -11,4 +11,5 @@
   <artifactId>plh.pkix.core.test</artifactId>
   <packaging>eclipse-test-plugin</packaging>
 
+  <name>Plooh PKIX Core Test</name>
 </project>
