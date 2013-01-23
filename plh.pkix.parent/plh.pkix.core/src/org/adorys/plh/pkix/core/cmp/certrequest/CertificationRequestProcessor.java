@@ -7,15 +7,16 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
 import org.adorys.plh.pkix.core.cmp.utils.PublicKeyUtils;
+import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
 import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
 import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertOrEncCert;
@@ -82,7 +83,7 @@ public class CertificationRequestProcessor {
 		return this;
 	}
 
-	public Response process(GeneralPKIMessage pkiMessage) {
+	public HttpResponse process(GeneralPKIMessage pkiMessage) {
 		
 		assert pkiMessage!=null : "Field pkiMessage can not be null";
 		assert issuerPrivateKey!=null : "Field issuerPrivateKey can not be null";
@@ -184,7 +185,7 @@ public class CertificationRequestProcessor {
 			PKIMessage responseMessage = mainMessage.toASN1Structure();
 			PendingResponses pendingResponses = PendingResponses.getInstance(issuerName);
 			pendingResponses.add(responseMessage);
-			return Response.ok().build();
+			return ResponseFactory.create(HttpStatus.SC_OK, null);
 		} catch (CMPException e) {
 			throw new IllegalStateException(e);
 		}

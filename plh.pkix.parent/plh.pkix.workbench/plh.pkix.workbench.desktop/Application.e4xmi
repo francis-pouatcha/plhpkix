@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application:Application xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:advanced="http://www.eclipse.org/ui/2010/UIModel/application/ui/advanced" xmlns:application="http://www.eclipse.org/ui/2010/UIModel/application" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmi:id="_H2DpUGQSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ide.application">
+  <children xsi:type="basic:TrimmedWindow" xmi:id="_gnGyAGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.trimmedwindow.0" label="Plooh Workbench Desktop" tooltip="Plooh Workbench Desktop" width="800" height="600">
+    <children xsi:type="advanced:PerspectiveStack" xmi:id="_xJWcUGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.perspectivestack.0">
+      <children xsi:type="advanced:Perspective" xmi:id="_79etQGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.perspective.0" label="Default Perspective" iconURI="platform:/plugin/plh.pkix.workbench.desktop/icons/application_split.png">
+        <children xsi:type="basic:PartSashContainer" xmi:id="_ODi6wGQcEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.partsashcontainer.0" horizontal="true">
+          <children xsi:type="basic:PartStack" xmi:id="_cGeC8GQcEeKHXKmm4nkYbw" elementId="org.eclipse.e4.primaryNavigationStack" containerData="30">
+            <tags>org.eclipse.e4.primaryNavigationStack</tags>
+          </children>
+          <children xsi:type="basic:PartSashContainer" xmi:id="_kOXXIGQcEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.partsashcontainer.1" containerData="70">
+            <children xsi:type="basic:PartSashContainer" xmi:id="_q6SckGQcEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.partsashcontainer.2" containerData="80" horizontal="true">
+              <children xsi:type="basic:PartStack" xmi:id="_2jgicGQcEeKHXKmm4nkYbw" elementId="org.eclipse.e4.primaryDataStack" containerData="80">
+                <tags>org.eclipse.e4.primaryDataStack</tags>
+              </children>
+              <children xsi:type="basic:PartStack" xmi:id="_AqbIEGQdEeKHXKmm4nkYbw" elementId="org.eclipse.e4.secondaryNavigationStack" containerData="20">
+                <tags>org.eclipse.e4.secondaryNavigationStack</tags>
+              </children>
+            </children>
+            <children xsi:type="basic:PartStack" xmi:id="_FDEG0GQeEeKHXKmm4nkYbw" elementId="org.eclipse.e4.secondaryDataStack" containerData="20"/>
+          </children>
+        </children>
+      </children>
+    </children>
+    <mainMenu xmi:id="_uxNgQGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.menu.0"/>
+  </children>
+  <addons xmi:id="_H2DpUmQSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.core.commands.service" contributionURI="bundleclass://org.eclipse.e4.core.commands/org.eclipse.e4.core.commands.CommandServiceAddon"/>
+  <addons xmi:id="_H2DpU2QSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ui.contexts.service" contributionURI="bundleclass://org.eclipse.e4.ui.services/org.eclipse.e4.ui.services.ContextServiceAddon"/>
+  <addons xmi:id="_H2DpVGQSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ui.bindings.service" contributionURI="bundleclass://org.eclipse.e4.ui.bindings/org.eclipse.e4.ui.bindings.BindingServiceAddon"/>
+  <addons xmi:id="_H2DpVWQSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ui.workbench.commands.model" contributionURI="bundleclass://org.eclipse.e4.ui.workbench/org.eclipse.e4.ui.internal.workbench.addons.CommandProcessingAddon"/>
+  <addons xmi:id="_H2DpVmQSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ui.workbench.contexts.model" contributionURI="bundleclass://org.eclipse.e4.ui.workbench/org.eclipse.e4.ui.internal.workbench.addons.ContextProcessingAddon"/>
+  <addons xmi:id="_H2DpV2QSEeKHXKmm4nkYbw" elementId="org.eclipse.e4.ui.workbench.bindings.model" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.swt/org.eclipse.e4.ui.workbench.swt.util.BindingProcessingAddon"/>
+</application:Application>

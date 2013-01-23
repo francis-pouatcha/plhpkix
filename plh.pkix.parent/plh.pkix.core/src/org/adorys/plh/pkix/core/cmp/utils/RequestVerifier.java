@@ -3,10 +3,9 @@ package org.adorys.plh.pkix.core.cmp.utils;
 import java.security.Provider;
 import java.security.cert.X509Certificate;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.cmp.CMPException;
 import org.bouncycastle.cert.cmp.ProtectedPKIMessage;
@@ -23,7 +22,7 @@ public abstract class RequestVerifier {
 	 * @param generalPKIMessage
 	 * @return
 	 */
-    public static Response verifyRequest(ProtectedPKIMessage protectedPKIMessage, X509CertificateHolder certificateHolder){
+    public static HttpResponse verifyRequest(ProtectedPKIMessage protectedPKIMessage, X509CertificateHolder certificateHolder){
 
     	Provider provider = PlhCMPSystem.getProvider();
     	
@@ -34,7 +33,7 @@ public abstract class RequestVerifier {
 			verifierProvider = new JcaContentVerifierProviderBuilder()
 				.setProvider(provider).build(jcaCert.getPublicKey());
 		} catch (OperatorCreationException e) {
-			return ErrorCommand.error(Status.INTERNAL_SERVER_ERROR, e.getMessage());
+			return ResponseFactory.create(HttpStatus.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 		}
 
 		boolean verify;
@@ -42,13 +41,13 @@ public abstract class RequestVerifier {
 		try {
 			verify = protectedPKIMessage.verify(verifierProvider);
 		} catch (CMPException e) {
-			return ErrorCommand.error(Status.NOT_ACCEPTABLE, e.getMessage());
+			return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE, e.getMessage());
 		}
 
 		if(!verify){
-			return ErrorCommand.error(Status.NOT_ACCEPTABLE, "Could not verify message");
+			return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE, "Could not verify message");
 		}
 		
-		return Response.ok(protectedPKIMessage).build();
+		return ResponseFactory.create(HttpStatus.SC_OK, null);
     }
 }

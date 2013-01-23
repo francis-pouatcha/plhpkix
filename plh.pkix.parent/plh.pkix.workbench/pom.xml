@@ -1,0 +1,17 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.adorsys.plh</groupId>
+  <artifactId>plh.pkix.workbench</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Plooh pkix workbench</name>
+  <description>Plooh pkix workbench aggregator</description>
+
+  <modules>
+  	<module>plh.pkix.workbench.desktop</module>
+  	<module>plh.pkix.workbench.navigator</module>
+  	<module>plh.pkix.workbench.services</module>
+  	<module>plh.pkix.workbench.account</module>
+  	<module>plh.pkix.workbench.account.test</module>
+  </modules>
+</project>

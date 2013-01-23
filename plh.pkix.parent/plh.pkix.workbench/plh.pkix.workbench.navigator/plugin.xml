@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension id="id1" point="org.eclipse.e4.workbench.model">
+      <fragment uri="xmi/fragment.e4xmi"/>
+
+      <!--      <fragment uri="xmi/contextViewMenuFragment.e4xmi"/>      -->
+   </extension>
+   <extension point="org.eclipse.core.expressions.definitions">
+      <definition id="org.adorsys.plh.pkix.workbench.navigator.menu.selection.Entry">
+         <with variable="output.selection">
+            <count value="1"/>
+            <iterate ifEmpty="false" operator="and">
+               <adapt type="org.adorsys.plh.pkix.workbench.navigator.menu.ContextMenuView$Entry"/>
+            </iterate>
+         </with>
+      </definition>
+   </extension>
+
+</plugin>

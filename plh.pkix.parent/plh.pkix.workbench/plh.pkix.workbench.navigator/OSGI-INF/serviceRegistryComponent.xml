@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="false" name="org.adorsys.plh.pkix.workbench.navigator.accountCreatorComponent">
+   <implementation class="org.adorsys.plh.pkix.workbench.navigator.internal.ServiceRegistryComponent"/>
+   <service>
+      <provide interface="org.adorsys.plh.pkix.workbench.navigator.internal.ServiceRegistryComponent"/>
+   </service>
+   <reference bind="addCreateResourceService" cardinality="0..n" interface="org.adorsys.plh.pkix.workbench.services.CreateResourceService" name="CreateResourceService" policy="dynamic" unbind="removeCreateResourceService"/>
+   <reference bind="addImportService" cardinality="0..n" interface="org.adorsys.plh.pkix.workbench.services.ImportResourceService" name="ImportResourceService" policy="dynamic" unbind="removeImportService"/>
+</scr:component>

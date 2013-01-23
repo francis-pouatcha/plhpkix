@@ -1,11 +1,10 @@
 package org.adorys.plh.pkix.core.cmp.message;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -29,7 +28,7 @@ public class PkiMessageChecker {
 		return this;
 	}
 
-	public Response check(GeneralPKIMessage generalPKIMessage){
+	public HttpResponse check(GeneralPKIMessage generalPKIMessage){
 		
 		assert certificateStore!=null : "Field certificateStore can not be null";
 		
@@ -38,11 +37,11 @@ public class PkiMessageChecker {
 		
 		X509CertificateHolder senderCertificate = certificateStore.getCertificate(X500Name.getInstance(sender.getName()));
 
-		if(senderCertificate==null)return ErrorCommand.error(Status.NOT_ACCEPTABLE, "Missing sender certificate");
+		if(senderCertificate==null)return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE, "Missing sender certificate");
 
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode())return verifiedRequest;
+		HttpResponse verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(verifiedRequest.getStatusLine().getStatusCode()!=HttpStatus.SC_OK)return verifiedRequest;
 		
-		return Response.ok().build();
+		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
 }

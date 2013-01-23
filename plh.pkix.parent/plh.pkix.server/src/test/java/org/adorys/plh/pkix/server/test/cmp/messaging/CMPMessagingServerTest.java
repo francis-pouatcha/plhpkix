@@ -10,7 +10,6 @@ import java.security.Provider;
 import java.util.Date;
 
 import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
@@ -26,6 +25,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ByteArrayEntity;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -162,8 +162,8 @@ public class CMPMessagingServerTest {
 		if(senderCertificate==null) 
 			Assert.fail("Response not from server");
 		
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
 			Assert.fail("Response not from server");
 		}
 	}

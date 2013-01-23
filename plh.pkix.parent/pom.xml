@@ -12,5 +12,7 @@
   	<module>plh.pkix.core.test</module>
   	<module>plh.jee.parent</module>
   	<module>plh.pkix.server</module>
+  	<module>plh.pkix.workbench</module>
+  	<module>plh.pkix.client</module>
   </modules>
 </project>

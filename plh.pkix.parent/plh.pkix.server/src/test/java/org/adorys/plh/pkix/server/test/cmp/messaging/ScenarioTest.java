@@ -12,6 +12,8 @@ import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
 import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.cmp.CMPException;
@@ -68,9 +70,8 @@ public class ScenarioTest {
 		Assert.assertTrue(initialize1.getStatus()==Status.OK.getStatusCode());
 		
 		// 3
-		Response requestCertificateResp = francisClient.requestCertificate(adminX500Name);
-		Assert.assertTrue(requestCertificateResp.getStatus()==Status.OK.getStatusCode());
-		
+		HttpResponse requestCertificateResp = francisClient.requestCertificate(adminX500Name);
+		Assert.assertTrue(requestCertificateResp.getStatusLine().getStatusCode()==HttpStatus.SC_OK);
 		
 		Response fetchRequestResponse = adminClient.fetchRequests(10, adminX500Name);
 		Assert.assertTrue(fetchRequestResponse.getStatus()+"", fetchRequestResponse.getStatus()==Status.OK.getStatusCode());

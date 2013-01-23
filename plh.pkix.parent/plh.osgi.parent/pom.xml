@@ -22,15 +22,19 @@
 		<repository>
 			<id>juno</id>
 			<layout>p2</layout>
-			<!-- 
-			<url>http://download.eclipse.org/eclipse/releases/juno</url>
-			 -->
-			<url>http://download.eclipse.org/eclipse/updates/4.2</url>
+			<!-- <url>http://download.eclipse.org/eclipse/updates/4.2</url> <url>http://download.eclipse.org/releases/kepler</url> 
+				<url>http://download.eclipse.org/eclipse/releases/juno</url> -->
+			<url>http://download.eclipse.org/releases/kepler</url>
 		</repository>
 		<repository>
 			<id>orbit</id>
 			<layout>p2</layout>
 			<url>http://download.eclipse.org/tools/orbit/downloads/drops/I20130115141820/repository</url>
+		</repository>
+		<repository>
+			<id>swtbot</id>
+			<layout>p2</layout>
+			<url>http://download.eclipse.org/technology/swtbot/snapshots</url>
 		</repository>
 	</repositories>
 	<build>
@@ -89,6 +93,31 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-surefire-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<useUIHarness>false</useUIHarness>
+					<useUIThread>true</useUIThread>
+				</configuration>
+			</plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.1</version>
+                <inherited>true</inherited>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <showDeprecation>false</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <optimize>true</optimize>
+                    <compilerVersion>1.6</compilerVersion>
+                    <fork>true</fork>
+                    <argLine>-Xmx512M</argLine>
+                </configuration>
+            </plugin>
+			
 		</plugins>
 	</build>
 	<name>Plooh OSGI Parent</name>

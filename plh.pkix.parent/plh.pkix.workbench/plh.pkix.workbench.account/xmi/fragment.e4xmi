@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="ASCII"?>
+<fragment:ModelFragments xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment" xmi:id="_SkVEoGToEeKHXKmm4nkYbw">
+  <fragments xsi:type="fragment:StringModelFragment" xmi:id="_XRwdEGToEeKHXKmm4nkYbw" featurename="children" parentElementId="org.eclipse.e4.primaryDataStack">
+    <elements xsi:type="basic:Part" xmi:id="_5HiPQGTpEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.account.part.0" contributionURI="bundleclass://plh.pkix.workbench.account/org.adorsys.plh.pkix.workbench.account.register.dialogs.RegisterView" label="Register Dialog"/>
+  </fragments>
+</fragment:ModelFragments>

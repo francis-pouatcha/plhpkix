@@ -19,7 +19,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.message.PkiMessageConformity;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.PkiMessageBuilder;
@@ -28,6 +27,9 @@ import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCert;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityInitializer;
 import org.adorys.plh.pkix.server.cmp.messaging.handler.CMPMessagingServerRequestHandler;
+import org.adorys.plh.pkix.server.cmp.utils.ErrorCommand;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1OctetString;
@@ -119,9 +121,9 @@ public class CMPMessaging {
 			throw new IllegalStateException(e);
 		}
 				
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
-			return verifiedRequest;
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
 		}
 
 		// Store the message for the recipient
@@ -192,9 +194,9 @@ public class CMPMessaging {
 			throw new IllegalStateException(e);
 		}
 				
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
-			return verifiedRequest;
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
 		}
 
 		CMPRequestData originalPkiMessageData = cmpRequestDataRepository.findByRecipient(senderHolder.getX500Name());
@@ -258,9 +260,9 @@ public class CMPMessaging {
 			throw new IllegalStateException(e);
 		}
 				
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
-			return verifiedRequest;
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
 		}
 
 		// Store the message for the recipient

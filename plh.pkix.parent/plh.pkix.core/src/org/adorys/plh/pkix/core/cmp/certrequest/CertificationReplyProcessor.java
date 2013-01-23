@@ -5,18 +5,17 @@ import java.security.Provider;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.adorys.plh.pkix.core.cmp.PendingRequestHolder;
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.message.PkiMessageChecker;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
 import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityComparator;
 import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
+import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CertOrEncCert;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -39,7 +38,7 @@ public class CertificationReplyProcessor {
 	private X500Name endEntityName;
 	private PrivateKey subjectPrivateKey;
 
-	public Response process(GeneralPKIMessage generalPKIMessage)
+	public HttpResponse process(GeneralPKIMessage generalPKIMessage)
 			{
 
 		validate();
@@ -89,11 +88,11 @@ public class CertificationReplyProcessor {
 				try {
 					issuedCertificate = parser.readCertificateHolder(decGen);
 				} catch (CRMFException e) {
-					return ErrorCommand.error(Status.BAD_REQUEST, e.getMessage());
+					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, e.getMessage());
 				}
 
 				if (!certTemplate.getSubject().equals(issuedCertificate.getSubject()))
-					return ErrorCommand.error(Status.BAD_REQUEST, "Subject not matching original request");
+					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
 
 //				SubjectPublicKeyInfo subjectPublicKeyInfo = ;
 //
@@ -102,14 +101,14 @@ public class CertificationReplyProcessor {
 //					subjectPublicKey = PublicKeyUtils.getPublicKey(
 //							subjectPublicKeyInfo, provider);
 //				} catch (InvalidKeySpecException e) {
-//					return ErrorCommand.error(Status.BAD_REQUEST, e.getMessage());
+//					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, e.getMessage());
 //				}
 //
 				if (!certTemplate.getPublicKey().equals(issuedCertificate.getSubjectPublicKeyInfo()))
-					return ErrorCommand.error(Status.BAD_REQUEST, "Subject not matching original request");
+					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
 
 				if (!certTemplate.getIssuer().equals(issuedCertificate.getIssuer()))
-					return ErrorCommand.error(Status.BAD_REQUEST, "Subject not matching original request");
+					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
 
 				OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
 						certTemplate.getValidity());
@@ -122,7 +121,7 @@ public class CertificationReplyProcessor {
 								.getNotAfter().getDate(), issuedCertificate
 								.getNotAfter());
 				if (!notBeforeCompatible || !notAfterCompatible)
-					return ErrorCommand.error(Status.BAD_REQUEST, "Optional validity not matching");
+					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Optional validity not matching");
 
 				// Store the certificate
 				issuedCertificates.add(issuedCertificate);
@@ -138,7 +137,7 @@ public class CertificationReplyProcessor {
 
 		end();
 
-		return Response.ok().build();
+		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
 
 	public CertificationReplyProcessor withEndEntityName(X500Name endEntityName) {

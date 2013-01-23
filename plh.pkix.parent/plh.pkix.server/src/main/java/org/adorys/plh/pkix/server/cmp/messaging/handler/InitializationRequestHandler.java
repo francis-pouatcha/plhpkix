@@ -13,7 +13,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.message.PkiMessageConformity;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
 import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
 import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
@@ -22,6 +21,9 @@ import org.adorys.plh.pkix.core.cmp.utils.X509CertificateVerifier;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCert;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityInitializer;
+import org.adorys.plh.pkix.server.cmp.utils.ErrorCommand;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -182,9 +184,10 @@ public class InitializationRequestHandler extends CMPRequestHandler {
 			senderCertificate = certificates[0];
 			if(X509CertificateVerifier.isSelfSignedBy(senderHolder.getX500Name(), senderCertificate)){
 				// check validity of self signed certificate.
-				Response verifyingCert = X509CertificateVerifier.verifyRequest(new Date(), senderCertificate, senderCertificate);
-				if(verifyingCert.getStatus()!=Status.OK.getStatusCode())
-					return verifyingCert;
+				HttpResponse res = X509CertificateVerifier.verifyRequest(new Date(), senderCertificate, senderCertificate);
+				if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+					return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
+				}
 				
 				// Create record if request verified
 				registerRecord=true;
@@ -195,9 +198,9 @@ public class InitializationRequestHandler extends CMPRequestHandler {
 		if(senderCertificate==null)
 			return ErrorCommand.error(Status.NOT_ACCEPTABLE, "Sender not registered with this server");
 		
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
-			return verifiedRequest;
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, senderCertificate);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
 		}
 		
 		// WARNING only do this after validating the certificate.

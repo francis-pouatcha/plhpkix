@@ -2,14 +2,14 @@ package org.adorys.plh.pkix.core.cmp.pollrequest;
 
 import java.util.Date;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.adorys.plh.pkix.core.cmp.PendingRequestHolder;
 import org.adorys.plh.pkix.core.cmp.message.PkiMessageChecker;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
+import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PollRepContent;
@@ -21,13 +21,13 @@ public class PollReplyProcessor {
 	private X500Name endEntityName;
 	PendingRequestHolder pendingRequestHolder;
 	
-	public Response process(GeneralPKIMessage generalPKIMessage) {
+	public HttpResponse process(GeneralPKIMessage generalPKIMessage) {
 		
 		validate();
 		
 		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
-		Response checkResponse = new PkiMessageChecker().withCertificateStore(certificateStore).check(generalPKIMessage);
-		if(checkResponse.getStatus()!=Status.OK.getStatusCode()) return checkResponse;
+		HttpResponse checkResponse = new PkiMessageChecker().withCertificateStore(certificateStore).check(generalPKIMessage);
+		if(checkResponse.getStatusLine().getStatusCode()!=HttpStatus.SC_OK) return checkResponse;
 		
 		PKIBody pkiBody = generalPKIMessage.getBody();
 		PollRepContent pollRepContent = PollRepContent.getInstance(pkiBody.getContent());
@@ -45,7 +45,7 @@ public class PollReplyProcessor {
 		
 		end();
 		
-		return Response.ok().build();
+		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
 	
 	public PollReplyProcessor withEndEntityName(X500Name endEntityName) {

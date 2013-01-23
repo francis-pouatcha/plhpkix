@@ -3,10 +3,12 @@ package org.adorys.plh.pkix.server.cmp.messaging.handler;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
+import org.adorys.plh.pkix.server.cmp.utils.ErrorCommand;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -32,13 +34,11 @@ public class CertificateAnnHandler  extends CMPRequestHandler {
 		// this request. This is the proof that the request was sent 
 		// by the subject of the certificate.
 		ProtectedPKIMessage protectedPKIMessage = new ProtectedPKIMessage(pkiMessage);
-		Response verifiedRequest = RequestVerifier.verifyRequest(protectedPKIMessage, cmpCertificateHolder);
-
-		// TODO return proper response: request not signed by certificate owner.
-		if(verifiedRequest.getStatus()!=Status.OK.getStatusCode()){
-			return verifiedRequest;
+		HttpResponse res = RequestVerifier.verifyRequest(protectedPKIMessage, cmpCertificateHolder);
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
 		}
-		
+
 		endEntityRepository.storeEndEntityCert(cmpCertificateHolder);
 
 		return Response.ok().build();

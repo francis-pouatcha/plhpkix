@@ -12,7 +12,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
 import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
 import org.adorys.plh.pkix.server.cmp.endentity.EndEntityCertRepository;
@@ -21,6 +20,7 @@ import org.adorys.plh.pkix.server.cmp.messaging.CMPReplyData;
 import org.adorys.plh.pkix.server.cmp.messaging.CMPReplyDataRepository;
 import org.adorys.plh.pkix.server.cmp.messaging.CMPRequestData;
 import org.adorys.plh.pkix.server.cmp.messaging.CMPRequestDataRepository;
+import org.adorys.plh.pkix.server.cmp.utils.ErrorCommand;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1OctetString;

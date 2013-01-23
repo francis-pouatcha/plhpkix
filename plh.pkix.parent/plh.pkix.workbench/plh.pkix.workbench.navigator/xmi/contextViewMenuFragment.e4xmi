@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="ASCII"?>
+<fragment:ModelFragments xmi:version="2.0"
+	xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/descriptor/basic"
+	xmlns:commands="http://www.eclipse.org/ui/2010/UIModel/application/commands"
+	xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment"
+	xmlns:menu="http://www.eclipse.org/ui/2010/UIModel/application/ui/menu"
+	xmlns:ui="http://www.eclipse.org/ui/2010/UIModel/application/ui"
+	xmi:id="_uj3fEHZcEd-RApwktjxCFQ">
+
+	<fragments xsi:type="fragment:StringModelFragment" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id0"
+		featurename="commands" parentElementId="plh.pkix.workbench">
+		<elements xsi:type="commands:Command" xmi:id="plh.pkix.workbench.navigator.open.dialog.command.on.selection0"	
+			elementId="open.dialog.on.selection" commandName="Show Info" />
+	</fragments>
+
+	<fragments xsi:type="fragment:StringModelFragment" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id1"
+		featurename="handlers" parentElementId="plh.pkix.workbench">
+		<elements xsi:type="commands:Handler" xmi:id="org.adorsys.plh.pkix.workbench.menu.OpenDialogHandler0"
+			contributionURI="bundleclass://plh.pkix.workbench.navigator/org.adorsys.plh.pkix.workbench.menu.OpenDialogHandler"
+			command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+	</fragments>
+	
+	<fragments xsi:type="fragment:StringModelFragment" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id2"
+		featurename="descriptors" parentElementId="plh.pkix.workbench">
+		<elements xsi:type="basic:PartDescriptor" xmi:id="org.adorsys.plh.pkix.workbench.menu.ContextMenuView0"
+			label="Context Menu View" elementId="org.adorsys.plh.pkix.workbench.menu.ContextMenuView"
+			category="org.eclipse.e4.secondaryDataStack"
+			contributionURI="bundleclass://plh.pkix.workbench.navigator/org.adorsys.plh.pkix.workbench.menu.ContextMenuView">
+			<tags>View</tags>
+			<tags>categoryTag:Utilities</tags>
+			<menus xmi:id="org.adorsys.plh.osgi.desktop.menu.ContextMenuView1"
+				elementId="org.adorsys.plh.osgi.desktop.menu.ContextMenuView">
+				<tags>ViewMenu</tags>
+				<children xsi:type="menu:HandledMenuItem" xmi:id="org.adorsys.plh.osgi.desktop.menu.ContextMenuView1_child0"
+					elementId="e4.showView" label="Show View">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.views.showView" />
+				</children>
+			</menus>
+			<menus xsi:type="menu:PopupMenu" xmi:id="ContextMenuView.treeMenu"
+				elementId="ContextMenuView.treeMenu">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_showView0"
+					elementId="e4.showView">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.views.showView" />
+				</children>
+				<children xsi:type="menu:MenuSeparator" xmi:id="ContextMenuView.treeMenu_separator0"
+					elementId="additions" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_copy0"
+					elementId="e4.copy">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.edit.copy" />
+				</children>
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					elementId="e4.open.dialog" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0">
+					<visibleWhen xsi:type="ui:CoreExpression"
+						coreExpressionId="org.adorsys.plh.osgi.desktop.menu.selection.Entry" />
+				</children>
+			</menus>
+			<menus xsi:type="menu:PopupMenu" xmi:id="ContextMenuView.tags"
+				elementId="ContextMenuView.tags">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.tags_showView0"
+					elementId="e4.showView">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.views.showView" />
+				</children>
+				<children xsi:type="menu:MenuSeparator" xmi:id="ContextMenuView.tags_separator0"
+					elementId="additions" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.tags_copy0"
+					elementId="e4.copy">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.edit.copy" />
+				</children>
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.tags_open_dialog0"
+					elementId="e4.open.dialog" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0">
+					<visibleWhen xsi:type="ui:CoreExpression"
+						coreExpressionId="org.adorsys.plh.osgi.desktop.menu.selection.Entry" />
+				</children>
+			</menus>
+			<menus xsi:type="menu:PopupMenu" xmi:id="ContextMenuView.info"
+				elementId="ContextMenuView.info">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.info_showView0"
+					elementId="e4.showView">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.views.showView" />
+				</children>
+				<children xsi:type="menu:MenuSeparator" xmi:id="ContextMenuView.info_seprator0"
+					elementId="additions" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.info_copy0"
+					elementId="e4.copy">
+					<command
+						href="platform:/plugin/plh.pkix.workbench.desktop/Application.e4xmi#org.eclipse.ui.edit.copy" />
+				</children>
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.info_open_dialog0"
+					elementId="e4.open.dialog" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0">
+					<visibleWhen xsi:type="ui:CoreExpression"
+						coreExpressionId="org.adorsys.plh.osgi.desktop.menu.selection.Entry" />
+				</children>
+			</menus>
+		</elements>
+	</fragments>
+	<fragments xsi:type="fragment:StringModelFragment" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id3"
+		featurename="menuContributions" parentElementId="plh.pkix.workbench">
+		<elements xsi:type="menu:MenuContribution" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id3workbench.info.popup1"
+			elementId="workbench.info.popup1" parentId="popup">
+			<visibleWhen xsi:type="ui:CoreExpression" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id3workbench.info.popup1_visibility"
+				coreExpressionId="org.adorsys.plh.pkix.workbench.desktop.menu.selection.Entry" />
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				elementId="e4.open.dialog.1" label="Popup Open 1" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				elementId="e4.open.dialog.2" label="Popup Open 2" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:Menu" xmi:id="workbench.submenu"
+				elementId="simpleide.submenu" label="Popup Sub">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					elementId="e4.open.dialog.3" label="Popup Open 3" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					elementId="e4.open.dialog.4" label="Popup Open 4" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			</children>
+		</elements>
+		<elements xsi:type="menu:MenuContribution" xmi:id="plh.pkix.workbench.navigator.contextViewMenuFragment_Id3workbench.info.contrib"
+			elementId="workbench.info.contrib" parentId="_WbMXYEjUEd-v7fhjaiz65w">
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				label="Window Open 1" elementId="e4.open.dialog.5" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				label="Window Open 2" elementId="e4.open.dialog.6" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:Menu" xmi:id="simpleide.window.submenu"
+				elementId="simpleide.window.submenu" label="Window Sub">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					label="Window Open 3" elementId="e4.open.dialog.7" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					label="Window Open 4" elementId="e4.open.dialog.8" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			</children>
+		</elements>
+		<elements xsi:type="menu:MenuContribution" xmi:id="_Vf3uwHZfEd-R6aDhnXWjVw"
+			elementId="simpleide.info.contrib2" parentId="simpleide.window.submenu">
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				label="Window Open 5" elementId="e4.open.dialog.9" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+				label="Window Open 6" elementId="e4.open.dialog.10" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			<children xsi:type="menu:Menu" xmi:id="simpleide.window.submenu2"
+				elementId="simpleide.window.submenu2" label="Window Sub2">
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					label="Window Open 7" elementId="e4.open.dialog.11" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+				<children xsi:type="menu:HandledMenuItem" xmi:id="ContextMenuView.treeMenu_open_dialog0"
+					label="Window Open 8" elementId="e4.open.dialog.12" command="plh.pkix.workbench.navigator.open.dialog.command.on.selection0" />
+			</children>
+		</elements>
+	</fragments>
+</fragment:ModelFragments>

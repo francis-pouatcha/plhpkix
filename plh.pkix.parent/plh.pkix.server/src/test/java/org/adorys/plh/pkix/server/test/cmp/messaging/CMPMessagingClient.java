@@ -31,15 +31,17 @@ import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
 import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
 import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
 import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
-import org.adorys.plh.pkix.core.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.RequestVerifier;
+import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
 import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
 import org.adorys.plh.pkix.core.cmp.utils.X509CertificateHolderCollection;
+import org.adorys.plh.pkix.server.cmp.utils.ErrorCommand;
 import org.adorys.plh.pkix.server.test.cmp.ContentTypeHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ByteArrayEntity;
@@ -139,10 +141,11 @@ public class CMPMessagingClient {
 			return ErrorCommand.error(Status.BAD_REQUEST,
 					"Missing server certificate");
 
-		Response verifiedRequest = RequestVerifier.verifyRequest(
+		HttpResponse res = RequestVerifier.verifyRequest(
 				protectedPKIMessage, responseSenderCertificate);
-		if (verifiedRequest.getStatus() != Status.OK.getStatusCode())
-			return verifiedRequest;
+		if(res.getStatusLine().getStatusCode()!=HttpStatus.SC_OK){
+			return ErrorCommand.error(res.getStatusLine().getStatusCode(), res.getStatusLine().getReasonPhrase());
+		}
 
 		CertTemplate certTemplate = initializationRequestHolder
 				.getCertTemplate();
@@ -159,7 +162,7 @@ public class CMPMessagingClient {
 
 	}
 
-	public Response requestCertificate(X500Name certAuthorityName)
+	public HttpResponse requestCertificate(X500Name certAuthorityName)
 			throws NoSuchAlgorithmException, OperatorCreationException,
 			CMPException, ClientProtocolException, IOException {
 
@@ -187,9 +190,10 @@ public class CMPMessagingClient {
 		
 		if (sendingRsponse.getStatusLine().getStatusCode() != Status.OK
 				.getStatusCode())
-			return Response
-					.status(sendingRsponse.getStatusLine().getStatusCode())
-					.entity(sendingRsponse.getEntity()).build();
+			return sendingRsponse;
+//			return Response
+//					.status(sendingRsponse.getStatusLine().getStatusCode())
+//					.entity(sendingRsponse.getEntity()).build();
 
 		InputStream inputStream = sendingRsponse.getEntity().getContent();
 		GeneralPKIMessage generalPKIMessage = new GeneralPKIMessage(
@@ -216,9 +220,8 @@ public class CMPMessagingClient {
 					.withSubjectPrivateKey(privateKey)
 					.process(generalPKIMessage);
 		default:
-			return ErrorCommand.error(Status.NOT_ACCEPTABLE,
-					"Unexpected response type; "
-							+ protectedPKIMessage.getBody().getType());
+			return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE, "Unexpected response type; "
+					+ protectedPKIMessage.getBody().getType());
 		}
 	}
 
