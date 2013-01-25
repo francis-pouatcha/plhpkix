@@ -69,7 +69,7 @@ public class ScenarioTest2 {
 		Assert.assertTrue(requestCertificateResp.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
 		
-		HttpResponse fetchRequestResponse = adminClient.fetchRequests(10, adminX500NameString);
+		HttpResponse fetchRequestResponse = adminClient.fetch(adminX500NameString);
 		Assert.assertTrue(fetchRequestResponse.getStatusLine().getStatusCode()+"", fetchRequestResponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
 		HttpResponse sendResponsesResp = adminClient.sendResponses(adminX500NameString);

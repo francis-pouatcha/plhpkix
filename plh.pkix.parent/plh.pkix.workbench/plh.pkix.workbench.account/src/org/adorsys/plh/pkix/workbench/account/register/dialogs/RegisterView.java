@@ -2,6 +2,8 @@ package org.adorsys.plh.pkix.workbench.account.register.dialogs;
 
 /* Imports */
 import javax.inject.Inject;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 
 import org.adorsys.plh.pkix.client.cmp.CMPMessagingClient;
 import org.eclipse.swt.SWT;
@@ -15,6 +17,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 /**
@@ -45,8 +48,9 @@ public class RegisterView {
 	}
 
 	
-	public void initDialog(final Composite parent) {
+	public void initDialog(Composite parent) {
 
+		final Shell shell = parent.getShell();
 		ModifyListener enableRegisterModifyListener = new ModifyListener() {
 			public void modifyText(ModifyEvent e) {
 				enableRegisterButton();
@@ -105,7 +109,7 @@ public class RegisterView {
 				GridData.HORIZONTAL_ALIGN_BEGINNING));
 		cancelButton.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
-//			initDialog(parent);
+				resetFields();
 			}
 		});
 		
@@ -126,7 +130,7 @@ public class RegisterView {
 //					box.open();
 //				}
 				if (ValidtionUtils.isNotEmptyAndIdentical(userPassword, repeatPassword)){
-					MessageBox box = new MessageBox(parent.getShell(), SWT.ICON_INFORMATION
+					MessageBox box = new MessageBox(shell, SWT.ICON_INFORMATION
 					| SWT.OK | SWT.PRIMARY_MODAL);
 					box.setText(Messages.Register_dialog_title);
 					box.setMessage(Messages.Register_dialog_both_passwords_not_identical);
@@ -134,13 +138,21 @@ public class RegisterView {
 					repeatPassword.setText("");
 					box.open();
 				} else {
+					String emailAddress = email;
+					try {
+						InternetAddress internetAddress = new InternetAddress(email, false);
+						emailAddress = internetAddress.getAddress();
+					} catch (AddressException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					CMPMessagingClient messagingClient = new CMPMessagingClient()
 						.withClientName(email)
 						.withAddressPrefix(addressPrefix);
 						messagingClient.initKeyPair();
 
 					// Register handler here.
-					MessageBox box = new MessageBox(parent.getShell(), SWT.ICON_INFORMATION
+					MessageBox box = new MessageBox(shell, SWT.ICON_INFORMATION
 							| SWT.OK | SWT.PRIMARY_MODAL);
 					box.setText(Messages.Register_dialog_title);
 					box.setMessage(Messages.Register_dialog_done
@@ -162,5 +174,11 @@ public class RegisterView {
 		} else {
 			registerButton.setEnabled(false);
 		}
+	}
+	
+	private void resetFields(){
+		if(userEmail!=null)userEmail.setText("");
+		if(userPassword!=null)userPassword.setText("");
+		if(repeatPassword!=null)repeatPassword.setText("");
 	}
 }

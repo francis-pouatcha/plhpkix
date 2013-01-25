@@ -15,7 +15,6 @@ import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
-import org.adorys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
@@ -42,8 +41,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.bouncycastle.asn1.cmp.GenMsgContent;
-import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.crmf.CertTemplate;
@@ -69,8 +66,9 @@ public class CMPMessagingClient {
 	private String addressPrefix;
 
 	public void initKeyPair() {
+		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(endEntityName);
 		try {
-			new KeyPairBuilder().withEndEntityName(endEntityName).build();
+			new KeyPairBuilder().withEndEntityName(endEntityName).withPrivateKeyHolder(privateKeyHolder).build();
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException(e);
 		}
@@ -292,75 +290,16 @@ public class CMPMessagingClient {
 		}
 		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
-	
-	public HttpResponse fetchRequests(int iteration, String certSignerString) throws Exception {
 
-		X500Name certSigner = new X500Name(certSignerString);
-		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
-		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
-		if(senderCertificate==null)
-			throw new IllegalStateException("No certificate with signer");
+	public HttpResponse fetch(String certSignerString) {
+		for (int i = 0; i < 10; i++) {
+			int resCode = processFetch(certSignerString);
+			if(resCode!=HttpStatus.SC_OK) return ResponseFactory.create(resCode, null);
+		}		
 		
-		InfoTypeAndValue itv = new InfoTypeAndValue(new FetchRequestTypesValue());
-		GenMsgContent genMsgContent = new GenMsgContent(itv);
-		
-		X500Name serverX500Name = new X500Name(PlhCMPSystem.getServerName());
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(endEntityName);
-        PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(senderCertificate));
-		ContentSigner subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(PlhCMPSystem.getProvider()).build(subjectPrivateKey );
-
-		byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(senderCertificate);
-		ProtectedPKIMessage mainMessage = new ProtectedPKIMessageBuilder(new GeneralName(endEntityName), new GeneralName(serverX500Name))
-	        .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, genMsgContent))
-	        .addCMPCertificate(senderCertificate)
-	        .setMessageTime(new Date())
-	        .setSenderKID(subjectKeyId)
-	        .setSenderNonce(UUIDUtils.newUUIDAsBytes())
-	        .setTransactionID(UUIDUtils.newUUIDAsBytes())
-	        .build(subjectSigner);
-        
-        PKIMessage pkiMessage = mainMessage.toASN1Structure();
-
-		HttpClient httpclient = new DefaultHttpClient();
-		HttpEntity entity = new ByteArrayEntity(pkiMessage.getEncoded());
-		HttpPost httpPost = new HttpPost(addressPrefix + FETCHSUFFIX);
-		httpPost.setEntity(entity);
-		httpPost.addHeader("Content-Type", PlhCMPSystem.PKIX_CMP_STRING);
-		HttpResponse sendingRsponse = httpclient.execute(httpPost);
-
-		if (sendingRsponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
-			return sendingRsponse;
-
-
-		InputStream inputStream = sendingRsponse.getEntity().getContent();
-		GeneralPKIMessage generalPKIMessage = new GeneralPKIMessage(
-				IOUtils.toByteArray(inputStream));
-
-		// Check message conformity
-		ProtectedPKIMessage protectedPKIMessage = PkiMessageConformity
-				.check(generalPKIMessage);
-
-		switch (protectedPKIMessage.getBody().getType()) {
-			case PKIBody.TYPE_CERT_REQ:
-				new CertificationRequestProcessor()
-					.setIssuerKeyId(subjectKeyId)
-					.setIssuerName(endEntityName)
-					.setIssuerPrivateKey(subjectPrivateKey)
-					.setIssuerX509CertificateHolder(senderCertificate)
-					.process(generalPKIMessage);
-				break;
-			default:
-				return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE,
-						"Unexpected request type; "
-							+ protectedPKIMessage.getBody().getType());
-		}
-		iteration=iteration+1;
-		if(iteration>10)return ResponseFactory.create(HttpStatus.SC_OK, null);
-		
-		return fetchRequests(iteration, certSignerString);
+		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
-	
+
 	public HttpResponse sendResponses(String certSignerString) throws ClientProtocolException, IOException{
 		
 		X500Name certSigner = new X500Name(certSignerString);
@@ -433,5 +372,100 @@ public class CMPMessagingClient {
 	private void validate() {
 		assert endEntityName != null : "Field clientName can not be null";
 		assert addressPrefix != null : "Field addressPrefix can not be null";
+	}
+	
+	private int processFetch(String cert){
+		if(cert==null) return HttpStatus.SC_BAD_REQUEST;
+		X500Name certSigner = new X500Name(cert);
+		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
+		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
+		if(senderCertificate==null)
+			throw new IllegalStateException("No certificate with signer");
+				
+		X500Name serverX500Name = new X500Name(PlhCMPSystem.getServerName());
+		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
+				.getInstance(endEntityName);
+        PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(senderCertificate));
+		ContentSigner subjectSigner;
+		try {
+			subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(PlhCMPSystem.getProvider()).build(subjectPrivateKey );
+		} catch (OperatorCreationException e) {
+			throw new IllegalStateException(e);
+		}
+
+		byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(senderCertificate);
+		ProtectedPKIMessage mainMessage;
+		try {
+//			InfoTypeAndValue itv = new InfoTypeAndValue(new FetchRequestTypesValue());
+//			GenMsgContent genMsgContent = new GenMsgContent(itv);
+			mainMessage = new ProtectedPKIMessageBuilder(new GeneralName(endEntityName), new GeneralName(serverX500Name))
+//			    .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, genMsgContent))
+			    .addCMPCertificate(senderCertificate)
+			    .setMessageTime(new Date())
+			    .setSenderKID(subjectKeyId)
+			    .setSenderNonce(UUIDUtils.newUUIDAsBytes())
+			    .setTransactionID(UUIDUtils.newUUIDAsBytes())
+			    .build(subjectSigner);
+		} catch (CMPException e) {
+			throw new IllegalStateException(e);
+		}
+        
+        PKIMessage pkiMessage = mainMessage.toASN1Structure();
+
+		HttpClient httpclient = new DefaultHttpClient();
+		HttpEntity entity;
+		try {
+			entity = new ByteArrayEntity(pkiMessage.getEncoded());
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		HttpPost httpPost = new HttpPost(addressPrefix + FETCHSUFFIX);
+		httpPost.setEntity(entity);
+		httpPost.addHeader("Content-Type", PlhCMPSystem.PKIX_CMP_STRING);
+		HttpResponse sendingRsponse;
+		try {
+			sendingRsponse = httpclient.execute(httpPost);
+		} catch (ClientProtocolException e) {
+			throw new IllegalStateException(e);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+
+		if (sendingRsponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
+			return sendingRsponse.getStatusLine().getStatusCode();
+
+
+		InputStream inputStream;
+		try {
+			inputStream = sendingRsponse.getEntity().getContent();
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		GeneralPKIMessage generalPKIMessage;
+		try {
+			generalPKIMessage = new GeneralPKIMessage(
+					IOUtils.toByteArray(inputStream));
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+
+		// Check message conformity
+		ProtectedPKIMessage protectedPKIMessage = PkiMessageConformity
+				.check(generalPKIMessage);
+
+		switch (protectedPKIMessage.getBody().getType()) {
+			case PKIBody.TYPE_CERT_REQ:
+				new CertificationRequestProcessor()
+					.setIssuerKeyId(subjectKeyId)
+					.setIssuerName(endEntityName)
+					.setIssuerPrivateKey(subjectPrivateKey)
+					.setIssuerX509CertificateHolder(senderCertificate)
+					.process(generalPKIMessage);
+				break;
+			default:
+				return HttpStatus.SC_NOT_ACCEPTABLE;
+		}
+		return HttpStatus.SC_OK;
+		
 	}
 }

@@ -3,7 +3,7 @@ package org.adorsys.plh.pkix.workbench.account.register.dialogs;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-	private static final String BUNDLE_NAME = "bundle";
+	private static final String BUNDLE_NAME = "OSGI-INF/l10n/bundle";
 	
 	public static String Register_dialog_cancel;
 	public static String Register_dialog_done;

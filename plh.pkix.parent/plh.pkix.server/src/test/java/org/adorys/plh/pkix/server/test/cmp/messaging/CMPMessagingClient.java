@@ -71,7 +71,11 @@ public class CMPMessagingClient {
 	private String addressPrefix;
 
 	public void initKeyPair() throws NoSuchAlgorithmException {
-		new KeyPairBuilder().withEndEntityName(endEntityName).build();
+		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(endEntityName);
+		new KeyPairBuilder()
+			.withEndEntityName(endEntityName)
+			.withPrivateKeyHolder(privateKeyHolder)
+			.build();
 	}
 
 	public Response initialize(X500Name certSigner)

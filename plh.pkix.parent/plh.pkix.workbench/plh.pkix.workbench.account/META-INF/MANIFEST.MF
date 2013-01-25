@@ -11,5 +11,7 @@ Require-Bundle: org.eclipse.jface;bundle-version="3.8.200",
  org.eclipse.e4.core.di;bundle-version="1.2.0",
  javax.inject;bundle-version="1.0.0",
  org.apache.commons.lang3;bundle-version="3.1.0",
- plh.pkix.client.cmp;bundle-version="0.0.1"
+ plh.pkix.client.cmp;bundle-version="0.0.1",
+ javax.mail;bundle-version="1.4.0"
 Bundle-Localization: OSGI-INF/l10n/bundle
+Bundle-ActivationPolicy: lazy

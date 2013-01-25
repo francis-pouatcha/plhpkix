@@ -7,6 +7,4 @@ Fragment-Host: plh.pkix.core;bundle-version="[0.0.1,0.1.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6,
  JavaSE-1.7
 Require-Bundle: org.junit4;bundle-version="4.8.1"
-Bundle-ClassPath: lib/bcpkix-jdk15on-1.47.jar,
- lib/bcprov-jdk15on-1.47.jar,
- .
+Bundle-ClassPath: .

@@ -21,6 +21,7 @@ import org.bouncycastle.cert.X509CertificateHolder;
 public class KeyPairBuilder {
 
 	private X500Name endEntityName;
+	private PrivateKeyHolder privateKeyHolder;	
 
     public void build() throws NoSuchAlgorithmException{
     	
@@ -38,7 +39,6 @@ public class KeyPairBuilder {
 
         CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
         certificateStore.addCertificate(cert);
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(endEntityName);
         privateKeyHolder.addKeyPair(keyPair.getPrivate(), cert);
         
         end();
@@ -48,12 +48,18 @@ public class KeyPairBuilder {
 		this.endEntityName = endEntityName;
 		return this;
 	}
+	public KeyPairBuilder withPrivateKeyHolder(PrivateKeyHolder privateKeyHolder) {
+		this.privateKeyHolder = privateKeyHolder;
+		return this;
+	}
 
 	private void  validate() {
 		assert this.endEntityName!=null: "Field endEntityName can not be null";
+		assert this.privateKeyHolder!=null: "Field privateKeyHolder can not be null";
 	}
 
 	private void  end() {
 		this.endEntityName = null;
+		this.privateKeyHolder=null;
 	}
 }

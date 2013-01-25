@@ -56,9 +56,12 @@ public class EndEntityRepositoryTest {
 	@Test
 	public void test() throws NoSuchAlgorithmException {
 
-		X500Name fpEndEntityX500Name = new X500Name("CN=Francis Pouatcha");
+		String endEntityName = "CN=Francis Pouatcha";
+		X500Name fpEndEntityX500Name = new X500Name(endEntityName);
+		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(fpEndEntityX500Name);
 		new KeyPairBuilder()
 			.withEndEntityName(fpEndEntityX500Name)
+			.withPrivateKeyHolder(privateKeyHolder)
 			.build();
 		CertificateStore fpCertificateStore = CertificateStore.getInstance(fpEndEntityX500Name);
 		X509CertificateHolder fpSubjectCertificate = fpCertificateStore.getCertificate(fpEndEntityX500Name);
@@ -68,8 +71,10 @@ public class EndEntityRepositoryTest {
 		Assert.assertTrue(fps.size()==1);
 		
 		X500Name ssEndEntityX500Name = new X500Name("CN=Sandro Sonntag");
+		PrivateKeyHolder ssPrivateKeyHolder = PrivateKeyHolder.getInstance(ssEndEntityX500Name);
 		new KeyPairBuilder()
 			.withEndEntityName(ssEndEntityX500Name)
+			.withPrivateKeyHolder(ssPrivateKeyHolder)
 			.build();
 		CertificateStore ssCertificateStore = CertificateStore.getInstance(ssEndEntityX500Name);
 		X509CertificateHolder ssSubjectCertificate = ssCertificateStore.getCertificate(ssEndEntityX500Name);

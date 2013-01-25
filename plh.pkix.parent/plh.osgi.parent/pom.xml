@@ -20,7 +20,7 @@
 	<repositories>
 		<!-- configure p2 repository to resolve against -->
 		<repository>
-			<id>juno</id>
+			<id>kepler</id>
 			<layout>p2</layout>
 			<!-- <url>http://download.eclipse.org/eclipse/updates/4.2</url> <url>http://download.eclipse.org/releases/kepler</url> 
 				<url>http://download.eclipse.org/eclipse/releases/juno</url> -->
@@ -30,11 +30,6 @@
 			<id>orbit</id>
 			<layout>p2</layout>
 			<url>http://download.eclipse.org/tools/orbit/downloads/drops/I20130115141820/repository</url>
-		</repository>
-		<repository>
-			<id>swtbot</id>
-			<layout>p2</layout>
-			<url>http://download.eclipse.org/technology/swtbot/snapshots</url>
 		</repository>
 	</repositories>
 	<build>
@@ -111,10 +106,12 @@
                     <target>1.6</target>
                     <showDeprecation>false</showDeprecation>
                     <showWarnings>true</showWarnings>
+                    <!-- 
                     <optimize>true</optimize>
+                    <argLine>-Xmx512M</argLine>
+                     -->
                     <compilerVersion>1.6</compilerVersion>
                     <fork>true</fork>
-                    <argLine>-Xmx512M</argLine>
                 </configuration>
             </plugin>
 			

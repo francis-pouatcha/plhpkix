@@ -9,5 +9,6 @@
   
   <modules>
   	<module>plh.pkix.client.cmp</module>
+  	<module>plh.pkix.client.sedent</module>
   </modules>
 </project>

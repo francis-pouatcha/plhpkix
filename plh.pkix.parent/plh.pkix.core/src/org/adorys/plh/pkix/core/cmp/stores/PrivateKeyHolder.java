@@ -36,4 +36,9 @@ public class PrivateKeyHolder {
 	public PrivateKey getPrivateKey(ASN1OctetString keyId){
 		return privateKeyById.get(keyId);
 	}
+
+	public PrivateKey getPrivateKey(X509CertificateHolder certificate){
+		ASN1OctetString keyId = KeyIdUtils.getSubjectKeyIdentifierAsOctetString(certificate);
+		return privateKeyById.get(keyId);
+	}
 }
