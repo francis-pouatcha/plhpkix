@@ -43,4 +43,22 @@ public class PublicKeyUtils {
 			throw new IllegalStateException(e);
 		}
 	}
+
+	public static PublicKey getPublicKeySilent(X509CertificateHolder certificateHolder, Provider provider) {
+		if(certificateHolder==null) return null;
+    	SubjectPublicKeyInfo subjectPublicKeyInfo = certificateHolder.getSubjectPublicKeyInfo();
+		X509EncodedKeySpec x509EncodedKeySpec;
+		try {
+			x509EncodedKeySpec = new X509EncodedKeySpec(subjectPublicKeyInfo.getEncoded());
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+        try {
+			return KeyFactory.getInstance(subjectPublicKeyInfo.getAlgorithm().getAlgorithm().getId(), provider).generatePublic(x509EncodedKeySpec);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		} catch (InvalidKeySpecException e) {
+			throw new IllegalStateException(e);
+		}
+	}
 }

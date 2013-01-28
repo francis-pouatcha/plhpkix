@@ -24,7 +24,6 @@ import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
 import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
 import org.bouncycastle.cms.CMSAlgorithm;
@@ -58,15 +57,12 @@ public class SignEncryptUtils {
 
 	public static void sign(
 			PrivateKeyHolder privateKeyHolder, 
-			X500Name subjectX500Name,
-			X500Name certIssuerX500Name,
-			CertificateStore certificateStore, 
+			X509CertificateHolder subjectCertificate,
 			InputStream inputStream, OutputStream outputStream) throws IOException
 	{	
 		
 		Provider provider = PlhCMPSystem.getProvider();
 		
-		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectX500Name,certIssuerX500Name);
 		PrivateKey privateKey = privateKeyHolder.getPrivateKey(subjectCertificate);
 		
         CMSSignedDataStreamGenerator gen = new CMSSignedDataStreamGenerator();
@@ -99,23 +95,24 @@ public class SignEncryptUtils {
 	}
 
 	public static void encrypt(
+			InputStream inputStream, 
+			OutputStream outputStream,
 			CertificateStore certificateStore, 
-			List<X500Name> reciepientNames,
-			InputStream inputStream, OutputStream outputStream) throws IOException
+			String... reciepientCommonNames) throws IOException
 	{	
 		
 		Provider provider = PlhCMPSystem.getProvider();
 		
 		// Check if recipient available and if not return
         List<X509Certificate > recipientCertificates = new ArrayList<X509Certificate>();
-        for (X500Name recipientX500Name : reciepientNames) {
-        	X509CertificateHolder recipietCertificateHolder = certificateStore.getCertificate(recipientX500Name);
+        for (String recipientCN : reciepientCommonNames) {
+        	X509CertificateHolder recipietCertificateHolder = certificateStore.getCertificate(recipientCN);
         	if(recipietCertificateHolder!=null){
         		X509Certificate recipietCertificate = V3CertificateUtils.getCertificate(recipietCertificateHolder, provider);
         		recipientCertificates.add(recipietCertificate);
         	}
 		}
-        if(recipientCertificates.isEmpty()) throw new IllegalStateException("No recipient certificate found for recipients: " + reciepientNames);
+        if(recipientCertificates.isEmpty()) throw new IllegalStateException("No recipient certificate found for recipients: " + Arrays.toString(reciepientCommonNames));
 
         // envelope the datastream
         CMSEnvelopedDataStreamGenerator edGen = new CMSEnvelopedDataStreamGenerator();
@@ -144,7 +141,7 @@ public class SignEncryptUtils {
 	
 	public static void decrypt( 
 			PrivateKeyHolder recipientPrivateKeyHolder,
-			X500Name subjectName,
+			String subjectCN,
 			CertificateStore certificateStore,
 			InputStream inputStream, OutputStream outputStream) throws IOException {
 		CMSEnvelopedDataParser cmsEnvelopedDataParser;
@@ -155,7 +152,7 @@ public class SignEncryptUtils {
 		}
         RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
 
-		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectName);
+		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectCN);
 		byte[] thisSubjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificate);
         
         @SuppressWarnings("rawtypes")
@@ -173,7 +170,7 @@ public class SignEncryptUtils {
             break;
 		}
 
-        if(recipient==null) throw new IllegalStateException("Subject " + subjectName + " not recipient of this file");
+        if(recipient==null) throw new IllegalStateException("Subject " + subjectCN + " not recipient of this file");
         
         Provider provider = PlhCMPSystem.getProvider();
         CMSTypedStream contentStream;
@@ -252,41 +249,42 @@ public class SignEncryptUtils {
 	
 	public static void signEncrypt(
 			PrivateKeyHolder privateKeyHolder, 
-			X500Name subjectName,
-			X500Name certIssuerName,			
-			CertificateStore certificateStore,			
-			List<X500Name> reciepientNames,
+			X509CertificateHolder subjectCertificate,
 			InputStream inputStream, 
-			OutputStream outputStream) throws IOException 
+			OutputStream outputStream,
+			CertificateStore certificateStore,			
+			String... reciepientCommonNames) throws IOException 
 	{
 		// Sign the file
 		File signedFile = File.createTempFile(UUID.randomUUID().toString(), null);
 		OutputStream signedOutputStream = new FileOutputStream(signedFile);
-		sign(privateKeyHolder, subjectName, certIssuerName, certificateStore, inputStream, signedOutputStream);
+		sign(privateKeyHolder, subjectCertificate, inputStream, signedOutputStream);
 		IOUtils.closeQuietly(signedOutputStream);
 		
 		// encrypt the file
 		InputStream signedInputStream = new FileInputStream(signedFile);
-		encrypt(certificateStore, reciepientNames, signedInputStream, outputStream);
-		IOUtils.closeQuietly(signedOutputStream);
+		encrypt(signedInputStream, outputStream,certificateStore, reciepientCommonNames);
+		IOUtils.closeQuietly(signedInputStream);
 		
 		signedFile.delete();
 	}
 	
 	public static void decryptVerify(
 			PrivateKeyHolder recipientPrivateKeyHolder, 
-			X500Name subjectNameX500, 
+			String subjectCN, 
 			CertificateStore certificateStore, InputStream inputStream, OutputStream outputStream) throws IOException {
 		// Decrypt the file
 		File decryptedFile = File.createTempFile(UUID.randomUUID().toString(), null);
 		OutputStream decryptedOutputStream = new FileOutputStream(decryptedFile);
-		decrypt(recipientPrivateKeyHolder, subjectNameX500, certificateStore, inputStream, decryptedOutputStream);
+		decrypt(recipientPrivateKeyHolder, subjectCN, certificateStore, inputStream, decryptedOutputStream);
 		IOUtils.closeQuietly(decryptedOutputStream);
 		
 		// Verify, writing content to output stream.
 		InputStream decryptedInputStream = new FileInputStream(decryptedFile);
 		verify(decryptedInputStream, certificateStore, outputStream);
 		IOUtils.closeQuietly(decryptedInputStream);
+		
+		decryptedFile.delete();
 	}
 
 }

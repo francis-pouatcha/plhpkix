@@ -2,9 +2,6 @@ package org.adorsys.plh.pkix.core;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
-
-import org.bouncycastle.asn1.x500.X500Name;
 
 /**
  * Simple CMS (rfc 5652) based cryptographic message client.
@@ -17,11 +14,12 @@ public interface CMSClient {
 	/**
 	 * Sends a file to the list of recipients specified.
 	 * 
-	 * @param reciepientNamesX500
+	 * @param issuerCN
 	 * @param inputStream
 	 * @param outputStream
+	 * @param reciepientCommonNames
 	 */
-	public void sendFile(List<X500Name> reciepientNames, InputStream inputStream, OutputStream outputStream);
+	public void sendFile(String issuerCN, InputStream inputStream, OutputStream outputStream, String... reciepientCommonNames);
 
 	/**
 	 * Receives a file addressed to this client.

@@ -22,7 +22,7 @@ public class X500NameHelper {
 		for (RDN rdn : rdns) {
 			AttributeTypeAndValue[] typesAndValues = rdn.getTypesAndValues();
 			for (AttributeTypeAndValue attributeTypeAndValue : typesAndValues) {
-				return attributeTypeAndValue.getValue().toString();
+				return attributeTypeAndValue.getValue().toString().toLowerCase();
 			}
 		}
 		return null;
@@ -38,7 +38,7 @@ public class X500NameHelper {
 	public static String parseEmailAddress(String addresses) throws AddressException{
 		InternetAddress[] internetAddresses = InternetAddress.parse(addresses);
 		for (InternetAddress internetAddress : internetAddresses) {
-			return internetAddress.getAddress();
+			return internetAddress.getAddress().toLowerCase();
 		}
 		return null;
 	}

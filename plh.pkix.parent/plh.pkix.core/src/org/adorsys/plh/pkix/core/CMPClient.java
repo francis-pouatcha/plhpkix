@@ -2,7 +2,6 @@ package org.adorsys.plh.pkix.core;
 
 import java.util.List;
 
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 
 /**
@@ -25,23 +24,25 @@ public interface CMPClient {
 	
 	/**
 	 * Request the certification authority to certify this client. Any oder 
-	 * client can be considered a certification authority, mean ca certify
-	 * another client.
+	 * client can be considered a certification authority. The self signed
+	 * certificate of this client will be used as the model.
 	 * 
-	 * @param certAuthorityNameX500: the name of the certification authority
+	 * @param certAuthorityCN: the common name of the certification authority
 	 * the message is addressed to.
-	 * @param mode: data sent for certification
 	 */
-	public void requestCertification(X500Name certAuthorityName, X509CertificateHolder model);
-	
+	public void requestCertification(String certAuthorityCN);
+
 	/**
-	 * Fetch a certificate signed by any of those certification authorities 
-	 * from the server.
+	 * Fetch certificates signed by any of the certification authorities
+	 * specified.
 	 * 
-	 * @param subjectNameX500
-	 * @param certAuthorityNameX500
+	 * This framework uses the common name as the unique identifier for certificate owner.
+	 * In the most common case we use the email of the certificate owner as common name.
+	 * 
+	 * @param subjectCN
+	 * @param certAuthorityCN
 	 */
-	public void fetchCertificate(X500Name subjectName, List<X500Name> certAuthorityName);
+	public void fetchCertificate(String subjectCN, String... certAuthorityCN);
 	
 	/**
 	 * Shows the list of certification request sent by other clients to this client.

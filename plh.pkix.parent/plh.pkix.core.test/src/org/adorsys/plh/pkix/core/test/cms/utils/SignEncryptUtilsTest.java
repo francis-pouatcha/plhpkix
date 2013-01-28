@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Provider;
-import java.util.Arrays;
-import java.util.List;
 
 import org.adorsys.plh.pkix.core.cms.utils.SignEncryptUtils;
 import org.adorsys.plh.pkix.core.x500.X500NameHelper;
@@ -19,6 +17,7 @@ import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -28,6 +27,7 @@ public class SignEncryptUtilsTest {
 	static char[] password = PlhCMPSystem.getServerPassword();
 
 	static X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz");
+	static String subjectCN = X500NameHelper.getCN(subjectX500Name);
 	PrivateKeyHolder privateKeyHolder = new PrivateKeyHolder();
 	CertificateStore certificateStore = new CertificateStore();
 	@Test
@@ -38,14 +38,13 @@ public class SignEncryptUtilsTest {
 				.withCertificateStore(certificateStore)
 				.build0();
 
-		X500Name certIssuerNameX500 = subjectX500Name;
+		String certIssuerCN = subjectCN;// for API readability
 		InputStream inputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		FileOutputStream fileOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testSignVerify.signed");
-		SignEncryptUtils.sign(privateKeyHolder, certIssuerNameX500,
-				certIssuerNameX500, certificateStore, inputStream,
-				fileOutputStream);
+		X509CertificateHolder x509CertificateHolder = certificateStore.getCertificate(subjectCN, certIssuerCN);
+		SignEncryptUtils.sign(privateKeyHolder, x509CertificateHolder, inputStream,fileOutputStream);
 		IOUtils.closeQuietly(inputStream);
 		IOUtils.closeQuietly(fileOutputStream);
 
@@ -70,13 +69,11 @@ public class SignEncryptUtilsTest {
 				.withCertificateStore(certificateStore)
 				.build0();
 
-		List<X500Name> reciepientNamesX500 = Arrays.asList(subjectX500Name);
 		InputStream encryptInputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		FileOutputStream encryptOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testEncryptDecrypt.encrypted");
-		SignEncryptUtils.encrypt(certificateStore, reciepientNamesX500,
-				encryptInputStream, encryptOutputStream);
+		SignEncryptUtils.encrypt(encryptInputStream, encryptOutputStream,certificateStore,X500NameHelper.getCN(subjectX500Name));
 		IOUtils.closeQuietly(encryptInputStream);
 		IOUtils.closeQuietly(encryptOutputStream);
 
@@ -91,7 +88,7 @@ public class SignEncryptUtilsTest {
 				"target/rfc4210.pdf.testEncryptDecrypt.encrypted");
 		OutputStream decryptOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testEncryptDecrypt.decrypted");
-		SignEncryptUtils.decrypt(recipientPrivateKeyHolder, subjectX500Name,
+		SignEncryptUtils.decrypt(recipientPrivateKeyHolder, subjectCN,
 				certificateStore, decryptInputStream, decryptOutputStream);
 		IOUtils.closeQuietly(decryptInputStream);
 		IOUtils.closeQuietly(decryptOutputStream);
@@ -111,15 +108,15 @@ public class SignEncryptUtilsTest {
 			.withCertificateStore(certificateStore)
 			.build0();
 
-		X500Name certIssuerX500Name = subjectX500Name;
-		List<X500Name> reciepientNamesX500 = Arrays.asList(subjectX500Name);
+		String certIssuerCN = subjectCN;
 		
 		InputStream signEncryptInputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		OutputStream signEncryptOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.signed.encrypted");
-		SignEncryptUtils.signEncrypt(privateKeyHolder, subjectX500Name, certIssuerX500Name , 
-				certificateStore, reciepientNamesX500 , signEncryptInputStream, signEncryptOutputStream);
+		X509CertificateHolder x509CertificateHolder = certificateStore.getCertificate(subjectCN, certIssuerCN);
+		SignEncryptUtils.signEncrypt(privateKeyHolder, x509CertificateHolder, 
+				signEncryptInputStream, signEncryptOutputStream, certificateStore, subjectCN);
 		IOUtils.closeQuietly(signEncryptInputStream);
 		IOUtils.closeQuietly(signEncryptOutputStream);
 		// make sure the signed and encrypted content stream is different from original.
@@ -134,7 +131,7 @@ public class SignEncryptUtilsTest {
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.signed.encrypted");
 		OutputStream decryptVerifyOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.decrypted.verified");
-		SignEncryptUtils.decryptVerify(recipientPrivateKeyHolder , certIssuerX500Name, 
+		SignEncryptUtils.decryptVerify(recipientPrivateKeyHolder, certIssuerCN, 
 				certificateStore, decryptVerifyInputStream, decryptVerifyOutputStream);
 		IOUtils.closeQuietly(decryptVerifyInputStream);
 		IOUtils.closeQuietly(decryptVerifyOutputStream);

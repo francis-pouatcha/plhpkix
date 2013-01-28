@@ -17,11 +17,11 @@ public class UUIDUtilsTest {
 		Assert.assertArrayEquals(uuidToBytes, byteArray);
 	}
 	
+	@SuppressWarnings("unused")
 	@Test
 	public void testBigIntegerUUID(){
 		BigInteger bigInteger = UUIDUtils.toBigInteger(UUID.randomUUID());
 		String string = bigInteger.toString(16).toUpperCase();
-		System.out.println(string);
 	}
 
 }

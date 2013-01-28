@@ -11,6 +11,7 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.junit.Test;
 
 
+@SuppressWarnings("unused")
 public class X500NameTest {
 
 	@Test
