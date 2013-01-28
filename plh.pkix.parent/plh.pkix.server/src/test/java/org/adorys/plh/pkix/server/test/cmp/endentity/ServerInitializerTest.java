@@ -46,7 +46,7 @@ public class ServerInitializerTest {
 	public void test() {
 		X509CertificateHolder serverCertificateHolder = serverInitializer.getServerCertificate();
 		X500Name subject = serverCertificateHolder.getSubject();
-		Assert.assertEquals(PlhCMPSystem.getServerName(), subject.toString());
+		Assert.assertEquals(PlhCMPSystem.getServerName(), subject);
 	}
 
 }

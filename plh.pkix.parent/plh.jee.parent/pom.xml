@@ -38,6 +38,8 @@
         <version.commons.lang>2.6</version.commons.lang>
         <version.commons.io>2.1</version.commons.io>
         <version.httpcomponents>4.2.1</version.httpcomponents>
+        <version.httpcomponents.2>4.1.4</version.httpcomponents.2>
+        <version.javax.mail>1.4</version.javax.mail>
     </properties>
 
     <repositories>
@@ -53,6 +55,11 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+		<repository>
+			<id>orbit</id>
+			<layout>p2</layout>
+			<url>http://download.eclipse.org/tools/orbit/downloads/drops/I20130115141820/repository</url>
+		</repository>        
     </repositories>
 
     <pluginRepositories>
@@ -71,19 +78,25 @@
 
     <dependencyManagement>    
         <dependencies>
-        
 			<dependency>
-				<groupId>org.apache.httpcomponents</groupId>
-				<artifactId>fluent-hc</artifactId>
-				<version>${version.httpcomponents}</version>
+				<groupId>javax.mail</groupId>
+				<artifactId>mail</artifactId>
+				<version>${version.javax.mail}</version>
 				<scope>test</scope>
 			</dependency>
-        
+
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpclient</artifactId>
+				<scope>test</scope>
+				<version>4.1.2</version>
+			</dependency>
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpcore</artifactId>
-				<version>${version.httpcomponents}</version>
+				<version>${version.httpcomponents.2}</version>
 			</dependency>
+			
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>

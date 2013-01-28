@@ -7,6 +7,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x500.X500Name;
 
@@ -20,7 +21,7 @@ public class CMPRequestDataRepository {
 		TypedQuery<CMPRequestData> query = entityManager.createNamedQuery(
 				CMPRequestData.BY_RECIPIENT_TRANSACTIONID_SORTED_BY_RECEPTIONTIME, 
 				CMPRequestData.class);
-		query.setParameter("recipient", recipient.toString());
+		query.setParameter("recipient", X500NameHelper.getCN(recipient));
 		query.setParameter("transactionID", transactionID.toString());
 		query.setMaxResults(1);
 		List<CMPRequestData> resultList = query.getResultList();
@@ -32,7 +33,7 @@ public class CMPRequestDataRepository {
 		TypedQuery<CMPRequestData> query = entityManager.createNamedQuery(
 				CMPRequestData.BY_SENDER_TRANSACTIONID_SORTED_BY_RECEPTIONTIME, 
 				CMPRequestData.class);
-		query.setParameter("sender", sender.toString());
+		query.setParameter("sender", X500NameHelper.getCN(sender));
 		query.setParameter("transactionID", transactionID.toString());
 		query.setMaxResults(1);
 		List<CMPRequestData> resultList = query.getResultList();
@@ -44,7 +45,7 @@ public class CMPRequestDataRepository {
 		TypedQuery<CMPRequestData> query = entityManager.createNamedQuery(
 				CMPRequestData.BY_RECIPIENT_SORTED_BY_RECEPTIONTIME, 
 				CMPRequestData.class);
-		query.setParameter("recipient", recipient.toString());
+		query.setParameter("recipient", X500NameHelper.getCN(recipient));
 		query.setMaxResults(1);
 		List<CMPRequestData> resultList = query.getResultList();
 		if(resultList.isEmpty()) return null;

@@ -1,5 +1,6 @@
 package org.adorys.plh.pkix.core.cmp.utils;
 
+import java.math.BigInteger;
 import java.util.UUID;
 
 public class UUIDUtils {
@@ -22,10 +23,6 @@ public class UUIDUtils {
 
             return buffer;
     }
-//    
-//    public static ASN1OctetString newUUIDAsASN1OctetString(){
-//		return new DEROctetString(UUIDUtils.uuidToBytes(UUID.randomUUID()));
-//    }
 
     private static byte[] uuidToBytes(UUID uuid)
     {
@@ -33,5 +30,10 @@ public class UUIDUtils {
             long lsb = uuid.getLeastSignificantBits();
             
             return uuidToBytes(msb, lsb);
+    }
+
+    public static BigInteger toBigInteger(UUID uuid)
+    {
+        return new BigInteger(1, uuidToBytes(uuid));
     }
 }

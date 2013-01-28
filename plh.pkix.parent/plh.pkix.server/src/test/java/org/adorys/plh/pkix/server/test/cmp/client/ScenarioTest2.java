@@ -6,8 +6,12 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response.Status;
 
 import org.adorsys.plh.pkix.client.cmp.CMPMessagingClient;
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
+import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
+import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
 import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
 import org.apache.http.HttpResponse;
@@ -42,53 +46,52 @@ public class ScenarioTest2 {
 	public void test() throws Exception{
 		String addressPrefix = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME;
 
-		String adminX500NameString = "CN=Admin";
-		CMPMessagingClient adminClient = new CMPMessagingClient()
-			.withClientName(adminX500NameString)
-			.withAddressPrefix(addressPrefix);
-		
-		String francisX500NameString = "CN=Francis Pouatcha";
-		CMPMessagingClient francisClient = new CMPMessagingClient()
-		.withClientName(francisX500NameString)
-		.withAddressPrefix(addressPrefix);
+		// Tha admin client
+		X500Name adminX500Name = X500NameHelper.makeX500Name("admin", "admin@plhpkixtest.biz");
+		CertificateStore adminCertificateStore = new CertificateStore();
+		CMPMessagingClient adminClient = new CMPMessagingClient(adminX500Name, addressPrefix, 
+				new PrivateKeyHolder(), adminCertificateStore, 
+				new PendingPollRequest(), new PendingCertAnn(), new PendingResponses());
+
+		// Francis
+		X500Name francisX500Name = X500NameHelper.makeX500Name("francis", "francis@plhpkixtest.biz");
+		CertificateStore francisCertificateStore = new CertificateStore();
+		CMPMessagingClient francisClient = new CMPMessagingClient(francisX500Name, addressPrefix, 
+				new PrivateKeyHolder(), francisCertificateStore, 
+				new PendingPollRequest(), new PendingCertAnn(), new PendingResponses());
 		
 		adminClient.initKeyPair();
 		
 		// 1
-		HttpResponse initialize = adminClient.initialize(adminX500NameString);
+		HttpResponse initialize = adminClient.initialize(adminX500Name);
 		Assert.assertTrue(initialize.getStatusLine().getStatusCode()==HttpStatus.SC_OK);
 
 		francisClient.initKeyPair();
 		
 		// 2
-		HttpResponse initialize1 = francisClient.initialize(francisX500NameString);
+		HttpResponse initialize1 = francisClient.initialize(francisX500Name);
 		Assert.assertTrue(initialize1.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
 		// 3
-		HttpResponse requestCertificateResp = francisClient.requestCertificate(adminX500NameString);
+		HttpResponse requestCertificateResp = francisClient.requestCertificate(adminX500Name);
 		Assert.assertTrue(requestCertificateResp.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
 		
-		HttpResponse fetchRequestResponse = adminClient.fetch(adminX500NameString);
-		Assert.assertTrue(fetchRequestResponse.getStatusLine().getStatusCode()+"", fetchRequestResponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
+		HttpResponse fetchRequestResponse = adminClient.fetch(adminX500Name);
+		Assert.assertTrue(fetchRequestResponse.getStatusLine().getStatusCode()+"", 
+				(fetchRequestResponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode()||
+						(fetchRequestResponse.getStatusLine().getStatusCode()==Status.NO_CONTENT.getStatusCode())));
 		
-		HttpResponse sendResponsesResp = adminClient.sendResponses(adminX500NameString);
+		HttpResponse sendResponsesResp = adminClient.sendResponses(adminX500Name);
 		Assert.assertTrue(sendResponsesResp.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
-		HttpResponse pollRequestsResp = francisClient.pollRequests(francisX500NameString);
+		HttpResponse pollRequestsResp = francisClient.pollRequests(francisX500Name);
 		Assert.assertTrue(pollRequestsResp.getStatusLine().getStatusCode()+"",pollRequestsResp.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
-		X500Name francisX500Names = new X500Name(francisX500NameString);
-		CertificateStore certificateStore = CertificateStore.getInstance(francisX500Names );
-		Assert.assertNotNull(certificateStore);
 		
-		Assert.assertNotNull(certificateStore.getCertificate(francisX500Names, francisX500Names));
-		X500Name adminX500Names = new X500Name(adminX500NameString);
-		Assert.assertNotNull(certificateStore.getCertificate(francisX500Names, adminX500Names ));
-
-		PendingCertAnn pendingCertAnn = PendingCertAnn.getInstance(francisX500Names);
-		Assert.assertNotNull(pendingCertAnn);
+		Assert.assertNotNull(francisCertificateStore.getCertificate(francisX500Name, francisX500Name));
 
 		HttpResponse announceCertificates = francisClient.announceCertificates();
 		Assert.assertTrue(announceCertificates.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
+//		Assert.assertNotNull(adminCertificateStore.getCertificate(francisX500Name, adminX500Name));
 	}
 }

@@ -141,8 +141,8 @@ public class CMPMessaging {
 
 		pkiMessageData.setReceptionTime(new Date());
 		
-		pkiMessageData.setRecipient(recipientNameHolder.getUtf8Name());
-		pkiMessageData.setSender(senderHolder.getUtf8Name());
+		pkiMessageData.setRecipient(recipientNameHolder.getCN());
+		pkiMessageData.setSender(senderHolder.getCN());
 		
 		ASN1OctetString transactionID = pkiHeader.getTransactionID();
 		if(transactionID==null)
@@ -280,8 +280,8 @@ public class CMPMessaging {
 
 		cmpReplyData.setReceptionTime(new Date());
 		
-		cmpReplyData.setRecipient(recipientNameHolder.getUtf8Name());
-		cmpReplyData.setSender(senderHolder.getUtf8Name());
+		cmpReplyData.setRecipient(recipientNameHolder.getCN());
+		cmpReplyData.setSender(senderHolder.getCN());
 		
 		ASN1OctetString transactionID = pkiHeader.getTransactionID();
 		if(transactionID==null)

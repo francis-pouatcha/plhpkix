@@ -17,6 +17,10 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+		</dependency>	
+		<dependency>
 			<groupId>org.adorsys.plh</groupId>
 			<artifactId>plh.pkix.core</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
@@ -39,9 +43,9 @@
 
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>fluent-hc</artifactId>
+			<artifactId>httpclient</artifactId>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpcore</artifactId>

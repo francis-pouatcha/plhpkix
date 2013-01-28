@@ -6,12 +6,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.util.Arrays;
 import java.util.List;
 
 import org.adorsys.plh.pkix.core.cms.utils.SignEncryptUtils;
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.keypair.KeyPairBuilder;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
@@ -27,23 +27,18 @@ public class SignEncryptUtilsTest {
 	static Provider provider = PlhCMPSystem.getProvider();
 	static char[] password = PlhCMPSystem.getServerPassword();
 
-	static String subjectNameX500 = "cn=francis";
-	static X500Name subjectX500Name = new X500Name(subjectNameX500);
-
+	static X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz");
+	PrivateKeyHolder privateKeyHolder = new PrivateKeyHolder();
+	CertificateStore certificateStore = new CertificateStore();
 	@Test
 	public void testSignVerify() throws Exception {
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(subjectX500Name);
-		try {
-			new KeyPairBuilder().withEndEntityName(subjectX500Name)
-					.withPrivateKeyHolder(privateKeyHolder).build();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
+		new KeyPairBuilder()
+				.withEndEntityName(subjectX500Name)
+				.withPrivateKeyHolder(privateKeyHolder)
+				.withCertificateStore(certificateStore)
+				.build0();
 
-		String certIssuerNameX500 = subjectNameX500;
-		CertificateStore certificateStore = CertificateStore
-				.getInstance(subjectX500Name);
+		X500Name certIssuerNameX500 = subjectX500Name;
 		InputStream inputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		FileOutputStream fileOutputStream = new FileOutputStream(
@@ -69,18 +64,13 @@ public class SignEncryptUtilsTest {
 	@Test
 	public void testEncryptDecrypt() throws Exception {
 
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(subjectX500Name);
-		try {
-			new KeyPairBuilder().withEndEntityName(subjectX500Name)
-					.withPrivateKeyHolder(privateKeyHolder).build();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
+		new KeyPairBuilder()
+				.withEndEntityName(subjectX500Name)
+				.withPrivateKeyHolder(privateKeyHolder)
+				.withCertificateStore(certificateStore)
+				.build0();
 
-		CertificateStore certificateStore = CertificateStore
-				.getInstance(subjectX500Name);
-		List<String> reciepientNamesX500 = Arrays.asList(subjectNameX500);
+		List<X500Name> reciepientNamesX500 = Arrays.asList(subjectX500Name);
 		InputStream encryptInputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		FileOutputStream encryptOutputStream = new FileOutputStream(
@@ -101,7 +91,7 @@ public class SignEncryptUtilsTest {
 				"target/rfc4210.pdf.testEncryptDecrypt.encrypted");
 		OutputStream decryptOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testEncryptDecrypt.decrypted");
-		SignEncryptUtils.decrypt(recipientPrivateKeyHolder, subjectNameX500,
+		SignEncryptUtils.decrypt(recipientPrivateKeyHolder, subjectX500Name,
 				certificateStore, decryptInputStream, decryptOutputStream);
 		IOUtils.closeQuietly(decryptInputStream);
 		IOUtils.closeQuietly(decryptOutputStream);
@@ -115,25 +105,20 @@ public class SignEncryptUtilsTest {
 	
 	@Test
 	public void testSingEncryptDecryptVerify() throws IOException {
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(subjectX500Name);
-		try {
-			new KeyPairBuilder().withEndEntityName(subjectX500Name)
-					.withPrivateKeyHolder(privateKeyHolder).build();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
+		new KeyPairBuilder()
+			.withEndEntityName(subjectX500Name)
+			.withPrivateKeyHolder(privateKeyHolder)
+			.withCertificateStore(certificateStore)
+			.build0();
 
-		CertificateStore certificateStore = CertificateStore
-				.getInstance(subjectX500Name);
-		String certIssuerNameX500 = subjectNameX500;
-		List<String> reciepientNamesX500 = Arrays.asList(subjectNameX500);
+		X500Name certIssuerX500Name = subjectX500Name;
+		List<X500Name> reciepientNamesX500 = Arrays.asList(subjectX500Name);
 		
 		InputStream signEncryptInputStream = new FileInputStream(
 				"test/resources/rfc4210.pdf");
 		OutputStream signEncryptOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.signed.encrypted");
-		SignEncryptUtils.signEncrypt(privateKeyHolder, subjectNameX500, certIssuerNameX500 , 
+		SignEncryptUtils.signEncrypt(privateKeyHolder, subjectX500Name, certIssuerX500Name , 
 				certificateStore, reciepientNamesX500 , signEncryptInputStream, signEncryptOutputStream);
 		IOUtils.closeQuietly(signEncryptInputStream);
 		IOUtils.closeQuietly(signEncryptOutputStream);
@@ -149,7 +134,7 @@ public class SignEncryptUtilsTest {
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.signed.encrypted");
 		OutputStream decryptVerifyOutputStream = new FileOutputStream(
 				"target/rfc4210.pdf.testSingEncryptDecryptVerify.decrypted.verified");
-		SignEncryptUtils.decryptVerify(recipientPrivateKeyHolder , certIssuerNameX500, 
+		SignEncryptUtils.decryptVerify(recipientPrivateKeyHolder , certIssuerX500Name, 
 				certificateStore, decryptVerifyInputStream, decryptVerifyOutputStream);
 		IOUtils.closeQuietly(decryptVerifyInputStream);
 		IOUtils.closeQuietly(decryptVerifyOutputStream);

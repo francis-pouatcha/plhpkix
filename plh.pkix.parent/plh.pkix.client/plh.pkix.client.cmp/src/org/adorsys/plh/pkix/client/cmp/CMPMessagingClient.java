@@ -15,6 +15,7 @@ import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
 import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
+import org.adorys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
 import org.adorys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
@@ -41,6 +42,8 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.bouncycastle.asn1.cmp.GenMsgContent;
+import org.bouncycastle.asn1.cmp.InfoTypeAndValue;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.crmf.CertTemplate;
@@ -62,39 +65,52 @@ public class CMPMessagingClient {
 	private static final String FETCHSUFFIX = "/fetch";
 	private static final String REPSUFFIX = "/rep";
 
-	private X500Name endEntityName;
-	private String addressPrefix;
-
-	public void initKeyPair() {
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(endEntityName);
-		try {
-			new KeyPairBuilder().withEndEntityName(endEntityName).withPrivateKeyHolder(privateKeyHolder).build();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
+	private final X500Name endEntityName;
+	private final String addressPrefix;
+	private final PrivateKeyHolder privateKeyHolder;
+	private final CertificateStore certificateStore;
+	private final PendingPollRequest pendingPollRequest;
+	private final PendingCertAnn pendingCertAnns;
+	private final PendingResponses pendingResponses;
+	
+	public CMPMessagingClient(X500Name endEntityName, String addressPrefix,
+			PrivateKeyHolder privateKeyHolder,
+			CertificateStore certificateStore,
+			PendingPollRequest pendingPollRequest,
+			PendingCertAnn pendingCertAnns, PendingResponses pendingResponses) {
+		super();
+		this.endEntityName = endEntityName;
+		this.addressPrefix = addressPrefix;
+		this.privateKeyHolder = privateKeyHolder;
+		this.certificateStore = certificateStore;
+		this.pendingPollRequest = pendingPollRequest;
+		this.pendingCertAnns = pendingCertAnns;
+		this.pendingResponses = pendingResponses;
 	}
 
-	public HttpResponse initialize(String certSignerString)
+	public void initKeyPair() {
+		new KeyPairBuilder()
+			.withEndEntityName(endEntityName)
+			.withPrivateKeyHolder(privateKeyHolder)
+			.withCertificateStore(certificateStore)
+			.build0();
+	}
+
+	public HttpResponse initialize(X500Name certSigner)
 			throws OperatorCreationException, GeneralSecurityException,
 			IOException, CertException, CMPException {
 
 		validate();
-		
-		X500Name certSigner = new X500Name(certSignerString);
-		
-		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
+				
 		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 		
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(endEntityName);
 		PrivateKey privateKey = privateKeyHolder.getPrivateKey(KeyIdUtils
 				.getSubjectKeyIdentifierAsOctetString(senderCertificate));
 		InitializationRequestHolder initializationRequestHolder = new InitializationRequestBuilder()
 				.withEndEntityName(endEntityName)
-				.withRecipientX500Name(
-						new X500Name(PlhCMPSystem.getServerName()))
+				.withRecipientX500Name(PlhCMPSystem.getServerName())
 				.build(privateKey, senderCertificate);
 
 		PKIMessage pkiMessage = initializationRequestHolder.getPkiMessage();
@@ -122,7 +138,7 @@ public class CMPMessagingClient {
 		X509CertificateHolder responseSenderCertificate;
 		GeneralNameHolder initialRecipientHolder = new GeneralNameHolder(initializationRequestHolder.getPkiMessage().getHeader().getRecipient());
 		GeneralNameHolder senderHolder = new GeneralNameHolder(protectedPKIMessage.getHeader().getSender());
-		X500Name serverX500Name = new X500Name(PlhCMPSystem.getServerName());
+		X500Name serverX500Name = PlhCMPSystem.getServerName();
 		
 		// response sender is either recipient or server
 		if(!senderHolder.getX500Name().equals(initialRecipientHolder.getX500Name()) && !senderHolder.getX500Name().equals(serverX500Name))
@@ -161,14 +177,11 @@ public class CMPMessagingClient {
 
 	}
 
-	public HttpResponse requestCertificate(String certAuthorityNameString)
+	public HttpResponse requestCertificate(X500Name certAuthorityName)
 			throws NoSuchAlgorithmException, OperatorCreationException,
 			CMPException, ClientProtocolException, IOException {
 
 		validate();
-		X500Name certAuthorityName = new X500Name(certAuthorityNameString);
-		CertificateStore certificateStore = CertificateStore
-				.getInstance(endEntityName);
 		X509CertificateHolder subjectCert = certificateStore
 				.getCertificate(endEntityName);
 
@@ -176,7 +189,8 @@ public class CMPMessagingClient {
 				.withCertAuthorityName(certAuthorityName)
 				.withSubjectName(endEntityName)
 				.withSubjectCert(subjectCert)
-				.build();
+				.withPrivateKeyHolder(privateKeyHolder)
+				.build0();
 
 		PKIMessage pkiMessage = certificationRequestHolder.getPkiMessage();
 
@@ -198,8 +212,6 @@ public class CMPMessagingClient {
 		ProtectedPKIMessage protectedPKIMessage = PkiMessageConformity
 				.check(generalPKIMessage);
 
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(endEntityName);
 		PrivateKey privateKey = privateKeyHolder.getPrivateKey(KeyIdUtils
 				.getSubjectKeyIdentifierAsOctetString(subjectCert));
 
@@ -208,12 +220,17 @@ public class CMPMessagingClient {
 			return new PollReplyProcessor()
 					.withPendingRequestHolder(certificationRequestHolder)
 					.withEndEntityName(endEntityName)
-					.process(generalPKIMessage);
+					.withPendingPollRequest(pendingPollRequest)
+					.withCertificateStore(certificateStore)
+					.process0(generalPKIMessage);
 		case PKIBody.TYPE_CERT_REP:
 			return new CertificationReplyProcessor()
 					.withEndEntityName(endEntityName)
 					.withSubjectPrivateKey(privateKey)
-					.process(generalPKIMessage);
+					.withCertificateStore(certificateStore)
+					.withPendingCertAnns(pendingCertAnns)
+					.withPendingPollRequest(pendingPollRequest)
+					.process1(generalPKIMessage);
 		default:
 			return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE,
 					"Unexpected response type; "
@@ -221,23 +238,17 @@ public class CMPMessagingClient {
 		}
 	}
 
-	public HttpResponse pollRequests(String certSignerString)
+	public HttpResponse pollRequests(X500Name certSigner)
 			throws NoSuchAlgorithmException, OperatorCreationException,
 			CMPException, IOException {
 
-		X500Name certSigner = new X500Name(certSignerString);
-		
-		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
 		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 		
-		PendingPollRequest pendingPollRequest = PendingPollRequest
-				.getInstance(endEntityName);
 		List<PendingRequestHolder> pollRequests = pendingPollRequest
 				.loadPollRequests();
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(endEntityName);
+
 		for (PendingRequestHolder pendingRequestHolder : pollRequests) {
 			new PollRequestBuilder()
 					.withPrivateKeyHolder(privateKeyHolder)
@@ -274,13 +285,17 @@ public class CMPMessagingClient {
 				new PollReplyProcessor()
 						.withPendingRequestHolder(pendingRequestHolder)
 						.withEndEntityName(endEntityName)
-						.process(generalPKIMessage);
+						.withPendingPollRequest(pendingPollRequest)
+						.process0(generalPKIMessage);
 				break;
 			case PKIBody.TYPE_CERT_REP:
 				new CertificationReplyProcessor()
 						.withEndEntityName(endEntityName)
 						.withSubjectPrivateKey(privateKey)
-						.process(generalPKIMessage);
+						.withCertificateStore(certificateStore)
+						.withPendingCertAnns(pendingCertAnns)
+						.withPendingPollRequest(pendingPollRequest)
+						.process1(generalPKIMessage);
 				break;
 			default:
 				return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE,
@@ -291,25 +306,22 @@ public class CMPMessagingClient {
 		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
 
-	public HttpResponse fetch(String certSignerString) {
+	public HttpResponse fetch(X500Name certSigner) {
 		for (int i = 0; i < 10; i++) {
-			int resCode = processFetch(certSignerString);
+			int resCode = processFetch(certSigner);
 			if(resCode!=HttpStatus.SC_OK) return ResponseFactory.create(resCode, null);
 		}		
 		
 		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
 
-	public HttpResponse sendResponses(String certSignerString) throws ClientProtocolException, IOException{
+	public HttpResponse sendResponses(X500Name certSigner) throws ClientProtocolException, IOException{
 		
-		X500Name certSigner = new X500Name(certSignerString);
-		
-		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
 		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 		
-		PendingResponses pendingResponses = PendingResponses.getInstance(endEntityName);
+//		PendingResponses pendingResponses = PendingResponses.getInstance(endEntityName);
 		PKIMessage pkiMessage = pendingResponses.getNext();
 		while(pkiMessage!=null){
 			
@@ -332,14 +344,14 @@ public class CMPMessagingClient {
 
 	public HttpResponse announceCertificates() throws Exception{
 
-		PendingCertAnn pendingCertAnn = PendingCertAnn.getInstance(endEntityName);
-		X509CertificateHolder certificateHolder = pendingCertAnn.getNext();
+		X509CertificateHolder certificateHolder = pendingCertAnns.getNext();
 
 		while(certificateHolder!=null){
 			CertificateAnnouncementHolder certificateAnnouncementHolder = new CertificateAnnouncementBuilder()
 				.withSubjectName(endEntityName)
 				.withSubjectCertificate(certificateHolder)
-				.build();
+				.withPrivateKeyHolder(privateKeyHolder)
+				.build0();
 
 			PKIMessage pkiMessage = certificateAnnouncementHolder.getPkiMessage();
 			
@@ -353,38 +365,23 @@ public class CMPMessagingClient {
 			if (sendingRsponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
 				return sendingRsponse;
 			
-			certificateHolder = pendingCertAnn.getNext();
+			certificateHolder = pendingCertAnns.getNext();
 		}
 
 		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
-	
-	public CMPMessagingClient withClientName(String clientNameString) {
-		this.endEntityName = new X500Name(clientNameString);
-		return this;
-	}
-
-	public CMPMessagingClient withAddressPrefix(String addressPrefix) {
-		this.addressPrefix = addressPrefix;
-		return this;
-	}
-
 	private void validate() {
 		assert endEntityName != null : "Field clientName can not be null";
 		assert addressPrefix != null : "Field addressPrefix can not be null";
 	}
 	
-	private int processFetch(String cert){
-		if(cert==null) return HttpStatus.SC_BAD_REQUEST;
-		X500Name certSigner = new X500Name(cert);
-		CertificateStore certificateStore = CertificateStore.getInstance(endEntityName);
+	private int processFetch(X500Name certSigner){
+		if(certSigner==null) return HttpStatus.SC_BAD_REQUEST;
 		X509CertificateHolder senderCertificate = certificateStore.getCertificate(endEntityName, certSigner);
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 				
-		X500Name serverX500Name = new X500Name(PlhCMPSystem.getServerName());
-		PrivateKeyHolder privateKeyHolder = PrivateKeyHolder
-				.getInstance(endEntityName);
+		X500Name serverX500Name = PlhCMPSystem.getServerName();
         PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(senderCertificate));
 		ContentSigner subjectSigner;
 		try {
@@ -396,10 +393,10 @@ public class CMPMessagingClient {
 		byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(senderCertificate);
 		ProtectedPKIMessage mainMessage;
 		try {
-//			InfoTypeAndValue itv = new InfoTypeAndValue(new FetchRequestTypesValue());
-//			GenMsgContent genMsgContent = new GenMsgContent(itv);
+			InfoTypeAndValue itv = new InfoTypeAndValue(new FetchRequestTypesValue());
+			GenMsgContent genMsgContent = new GenMsgContent(itv);
 			mainMessage = new ProtectedPKIMessageBuilder(new GeneralName(endEntityName), new GeneralName(serverX500Name))
-//			    .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, genMsgContent))
+			    .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, genMsgContent))
 			    .addCMPCertificate(senderCertificate)
 			    .setMessageTime(new Date())
 			    .setSenderKID(subjectKeyId)
@@ -460,12 +457,12 @@ public class CMPMessagingClient {
 					.setIssuerName(endEntityName)
 					.setIssuerPrivateKey(subjectPrivateKey)
 					.setIssuerX509CertificateHolder(senderCertificate)
-					.process(generalPKIMessage);
+					.setPendingResponses(pendingResponses)
+					.process0(generalPKIMessage);
 				break;
 			default:
 				return HttpStatus.SC_NOT_ACCEPTABLE;
 		}
 		return HttpStatus.SC_OK;
-		
 	}
 }

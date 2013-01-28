@@ -58,16 +58,14 @@ public class SignEncryptUtils {
 
 	public static void sign(
 			PrivateKeyHolder privateKeyHolder, 
-			String subjectNameX500,
-			String certIssuerNameX500,
+			X500Name subjectX500Name,
+			X500Name certIssuerX500Name,
 			CertificateStore certificateStore, 
 			InputStream inputStream, OutputStream outputStream) throws IOException
 	{	
 		
 		Provider provider = PlhCMPSystem.getProvider();
 		
-		X500Name subjectX500Name = new X500Name(subjectNameX500);
-		X500Name certIssuerX500Name = new X500Name(certIssuerNameX500);
 		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectX500Name,certIssuerX500Name);
 		PrivateKey privateKey = privateKeyHolder.getPrivateKey(subjectCertificate);
 		
@@ -102,7 +100,7 @@ public class SignEncryptUtils {
 
 	public static void encrypt(
 			CertificateStore certificateStore, 
-			List<String> reciepientNamesX500,
+			List<X500Name> reciepientNames,
 			InputStream inputStream, OutputStream outputStream) throws IOException
 	{	
 		
@@ -110,15 +108,14 @@ public class SignEncryptUtils {
 		
 		// Check if recipient available and if not return
         List<X509Certificate > recipientCertificates = new ArrayList<X509Certificate>();
-        for (String reciepientName : reciepientNamesX500) {
-        	X500Name recipientX500Name = new X500Name(reciepientName);
+        for (X500Name recipientX500Name : reciepientNames) {
         	X509CertificateHolder recipietCertificateHolder = certificateStore.getCertificate(recipientX500Name);
         	if(recipietCertificateHolder!=null){
         		X509Certificate recipietCertificate = V3CertificateUtils.getCertificate(recipietCertificateHolder, provider);
         		recipientCertificates.add(recipietCertificate);
         	}
 		}
-        if(recipientCertificates.isEmpty()) throw new IllegalStateException("No recipient certificate found for recipients: " + reciepientNamesX500);
+        if(recipientCertificates.isEmpty()) throw new IllegalStateException("No recipient certificate found for recipients: " + reciepientNames);
 
         // envelope the datastream
         CMSEnvelopedDataStreamGenerator edGen = new CMSEnvelopedDataStreamGenerator();
@@ -147,7 +144,7 @@ public class SignEncryptUtils {
 	
 	public static void decrypt( 
 			PrivateKeyHolder recipientPrivateKeyHolder,
-			String subjectNameX500,
+			X500Name subjectName,
 			CertificateStore certificateStore,
 			InputStream inputStream, OutputStream outputStream) throws IOException {
 		CMSEnvelopedDataParser cmsEnvelopedDataParser;
@@ -158,8 +155,7 @@ public class SignEncryptUtils {
 		}
         RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
 
-        X500Name subjectX500Name = new X500Name(subjectNameX500);
-		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectX500Name);
+		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectName);
 		byte[] thisSubjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificate);
         
         @SuppressWarnings("rawtypes")
@@ -177,7 +173,7 @@ public class SignEncryptUtils {
             break;
 		}
 
-        if(recipient==null) throw new IllegalStateException("Subject " + subjectNameX500 + " not recipient of this file");
+        if(recipient==null) throw new IllegalStateException("Subject " + subjectName + " not recipient of this file");
         
         Provider provider = PlhCMPSystem.getProvider();
         CMSTypedStream contentStream;
@@ -256,22 +252,22 @@ public class SignEncryptUtils {
 	
 	public static void signEncrypt(
 			PrivateKeyHolder privateKeyHolder, 
-			String subjectNameX500,
-			String certIssuerNameX500,			
+			X500Name subjectName,
+			X500Name certIssuerName,			
 			CertificateStore certificateStore,			
-			List<String> reciepientNamesX500,
+			List<X500Name> reciepientNames,
 			InputStream inputStream, 
 			OutputStream outputStream) throws IOException 
 	{
 		// Sign the file
 		File signedFile = File.createTempFile(UUID.randomUUID().toString(), null);
 		OutputStream signedOutputStream = new FileOutputStream(signedFile);
-		sign(privateKeyHolder, subjectNameX500, certIssuerNameX500, certificateStore, inputStream, signedOutputStream);
+		sign(privateKeyHolder, subjectName, certIssuerName, certificateStore, inputStream, signedOutputStream);
 		IOUtils.closeQuietly(signedOutputStream);
 		
 		// encrypt the file
 		InputStream signedInputStream = new FileInputStream(signedFile);
-		encrypt(certificateStore, reciepientNamesX500, signedInputStream, outputStream);
+		encrypt(certificateStore, reciepientNames, signedInputStream, outputStream);
 		IOUtils.closeQuietly(signedOutputStream);
 		
 		signedFile.delete();
@@ -279,7 +275,7 @@ public class SignEncryptUtils {
 	
 	public static void decryptVerify(
 			PrivateKeyHolder recipientPrivateKeyHolder, 
-			String subjectNameX500, 
+			X500Name subjectNameX500, 
 			CertificateStore certificateStore, InputStream inputStream, OutputStream outputStream) throws IOException {
 		// Decrypt the file
 		File decryptedFile = File.createTempFile(UUID.randomUUID().toString(), null);

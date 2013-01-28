@@ -5,6 +5,9 @@
             <module name="org.bouncycastle" slot="main" export="true" />
             <module name="org.apache.commons.io" slot="main" export="true"/>
             <module name="org.apache.commons.lang" slot="main" export="true"/>
+<!-- 
+			<module name="org.apache.httpcomponents" slot="main" export="true"/>
+ -->
         </dependencies>
     </deployment>
 </jboss-deployment-structure>

@@ -37,105 +37,111 @@ public class CertificationReplyProcessor {
 
 	private X500Name endEntityName;
 	private PrivateKey subjectPrivateKey;
+	private CertificateStore certificateStore;
+	private PendingPollRequest pendingPollRequest;
+	private PendingCertAnn pendingCertAnns;
+	public HttpResponse process1(GeneralPKIMessage generalPKIMessage) {
+		try {
+			validate();
+			
+			Provider provider = PlhCMPSystem.getProvider();
 
-	public HttpResponse process(GeneralPKIMessage generalPKIMessage)
-			{
-
-		validate();
-
-		Provider provider = PlhCMPSystem.getProvider();
-
-		CertificateStore certificateStore = CertificateStore
-				.getInstance(endEntityName);
-		new PkiMessageChecker().withCertificateStore(certificateStore).check(
-				generalPKIMessage);
-
-		PKIBody pkiBody = generalPKIMessage.getBody();
-		CertRepMessage certRepMessage = CertRepMessage.getInstance(pkiBody
-				.getContent());
-
-		PendingPollRequest pendingCertRequest = PendingPollRequest
-				.getInstance(endEntityName);
-
-		// check that sender is the addressed ca
-		CertResponse[] response = certRepMessage.getResponse();
-		List<X509CertificateHolder> issuedCertificates = 
-				new ArrayList<X509CertificateHolder>(response.length);
-
-		for (CertResponse certResponse : response) {
-			ASN1Integer certReqId = certResponse.getCertReqId();
-			assert certReqId != null : "Missing cert request id";
-
-			PendingRequestHolder pendingRequestHolder = pendingCertRequest
-					.loadPollRequestHolder(certReqId);
-			assert pendingRequestHolder != null : "Missing cert request holder";
-			// verify that certificate meet initial requirements.
-			CertReqMessages certReqMessages = CertReqMessages
-					.getInstance(pendingRequestHolder.getPkiMessage().getBody().getContent());
-			CertReqMsg[] certReqMsgArray = certReqMessages.toCertReqMsgArray();
-			for (CertReqMsg certReqMsg : certReqMsgArray) {
-				CertTemplate certTemplate = certReqMsg.getCertReq()
-						.getCertTemplate();
-				CertOrEncCert certOrEncCert = certResponse
-						.getCertifiedKeyPair().getCertOrEncCert();
-				EncryptedValue encryptedCert = certOrEncCert.getEncryptedCert();
-
-				ValueDecryptorGenerator decGen = new JceAsymmetricValueDecryptorGenerator(
-						subjectPrivateKey).setProvider(provider);
-				EncryptedValueParser parser = new EncryptedValueParser(
-						encryptedCert);
-				X509CertificateHolder issuedCertificate;
-				try {
-					issuedCertificate = parser.readCertificateHolder(decGen);
-				} catch (CRMFException e) {
-					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, e.getMessage());
+			new PkiMessageChecker().withCertificateStore(certificateStore).check(
+					generalPKIMessage);
+			
+			PKIBody pkiBody = generalPKIMessage.getBody();
+			CertRepMessage certRepMessage = CertRepMessage.getInstance(pkiBody
+					.getContent());
+			
+			// check that sender is the addressed ca
+			CertResponse[] response = certRepMessage.getResponse();
+			List<X509CertificateHolder> issuedCertificates = new ArrayList<X509CertificateHolder>(
+					response.length);
+			
+			for (CertResponse certResponse : response) {
+				ASN1Integer certReqId = certResponse.getCertReqId();
+				assert certReqId != null : "Missing cert request id";
+				
+				PendingRequestHolder pendingRequestHolder = pendingPollRequest
+						.loadPollRequestHolder(certReqId);
+				assert pendingRequestHolder != null : "Missing cert request holder";
+				// verify that certificate meet initial requirements.
+				CertReqMessages certReqMessages = CertReqMessages
+						.getInstance(pendingRequestHolder.getPkiMessage().getBody()
+								.getContent());
+				CertReqMsg[] certReqMsgArray = certReqMessages.toCertReqMsgArray();
+				for (CertReqMsg certReqMsg : certReqMsgArray) {
+					CertTemplate certTemplate = certReqMsg.getCertReq()
+							.getCertTemplate();
+					CertOrEncCert certOrEncCert = certResponse
+							.getCertifiedKeyPair().getCertOrEncCert();
+					EncryptedValue encryptedCert = certOrEncCert.getEncryptedCert();
+					
+					ValueDecryptorGenerator decGen = new JceAsymmetricValueDecryptorGenerator(
+							subjectPrivateKey).setProvider(provider);
+					EncryptedValueParser parser = new EncryptedValueParser(
+							encryptedCert);
+					X509CertificateHolder issuedCertificate;
+					try {
+						issuedCertificate = parser.readCertificateHolder(decGen);
+					} catch (CRMFException e) {
+						return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+								e.getMessage());
+					}
+					
+					if (!certTemplate.getSubject().equals(
+							issuedCertificate.getSubject()))
+						return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+								"Subject not matching original request");
+					
+					// SubjectPublicKeyInfo subjectPublicKeyInfo = ;
+					//
+					// PublicKey subjectPublicKey;
+					// try {
+					// subjectPublicKey = PublicKeyUtils.getPublicKey(
+					// subjectPublicKeyInfo, provider);
+					// } catch (InvalidKeySpecException e) {
+					// return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+					// e.getMessage());
+					// }
+					//
+					if (!certTemplate.getPublicKey().equals(
+							issuedCertificate.getSubjectPublicKeyInfo()))
+						return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+								"Subject not matching original request");
+					
+					if (!certTemplate.getIssuer().equals(
+							issuedCertificate.getIssuer()))
+						return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+								"Subject not matching original request");
+					
+					OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
+							certTemplate.getValidity());
+					boolean notBeforeCompatible = OptionalValidityComparator
+							.isNotBeforeCompatible(optionalValidityFromTemplate
+									.getNotBefore().getDate(), issuedCertificate
+									.getNotBefore());
+					boolean notAfterCompatible = OptionalValidityComparator
+							.isNotAfterCompatible(optionalValidityFromTemplate
+									.getNotAfter().getDate(), issuedCertificate
+									.getNotAfter());
+					if (!notBeforeCompatible || !notAfterCompatible)
+						return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST,
+								"Optional validity not matching");
+					
+					// Store the certificate
+					issuedCertificates.add(issuedCertificate);
 				}
-
-				if (!certTemplate.getSubject().equals(issuedCertificate.getSubject()))
-					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
-
-//				SubjectPublicKeyInfo subjectPublicKeyInfo = ;
-//
-//				PublicKey subjectPublicKey;
-//				try {
-//					subjectPublicKey = PublicKeyUtils.getPublicKey(
-//							subjectPublicKeyInfo, provider);
-//				} catch (InvalidKeySpecException e) {
-//					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, e.getMessage());
-//				}
-//
-				if (!certTemplate.getPublicKey().equals(issuedCertificate.getSubjectPublicKeyInfo()))
-					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
-
-				if (!certTemplate.getIssuer().equals(issuedCertificate.getIssuer()))
-					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Subject not matching original request");
-
-				OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
-						certTemplate.getValidity());
-				boolean notBeforeCompatible = OptionalValidityComparator
-						.isNotBeforeCompatible(optionalValidityFromTemplate
-								.getNotBefore().getDate(), issuedCertificate
-								.getNotBefore());
-				boolean notAfterCompatible = OptionalValidityComparator
-						.isNotAfterCompatible(optionalValidityFromTemplate
-								.getNotAfter().getDate(), issuedCertificate
-								.getNotAfter());
-				if (!notBeforeCompatible || !notAfterCompatible)
-					return ResponseFactory.create(HttpStatus.SC_BAD_REQUEST, "Optional validity not matching");
-
-				// Store the certificate
-				issuedCertificates.add(issuedCertificate);
 			}
-		}
 
-		PendingCertAnn pendingCertAnns = PendingCertAnn
-				.getInstance(endEntityName);
-		for (X509CertificateHolder issuedCertificate : issuedCertificates) {
-			certificateStore.addCertificate(issuedCertificate);
-			pendingCertAnns.add(issuedCertificate);
+			for (X509CertificateHolder issuedCertificate : issuedCertificates) {
+				certificateStore.addCertificate(issuedCertificate);
+				pendingCertAnns.add(issuedCertificate);
+			}
+		} finally {
+			end();
+			
 		}
-
-		end();
 
 		return ResponseFactory.create(HttpStatus.SC_OK, null);
 	}
@@ -151,13 +157,34 @@ public class CertificationReplyProcessor {
 		return this;
 	}
 
+	public CertificationReplyProcessor withCertificateStore(CertificateStore certificateStore) {
+		this.certificateStore = certificateStore;
+		return this;
+	}
+
+	public CertificationReplyProcessor withPendingPollRequest(PendingPollRequest pendingPollRequest) {
+		this.pendingPollRequest = pendingPollRequest;
+		return this;
+	}
+
+	public CertificationReplyProcessor withPendingCertAnns(PendingCertAnn pendingCertAnns) {
+		this.pendingCertAnns = pendingCertAnns;
+		return this;
+	}
+
 	private void validate() {
 		assert this.endEntityName != null : "Field endEntityName can not be null";
 		assert this.subjectPrivateKey != null : "Field subjectPrivateKey can not be null";
+		assert this.certificateStore != null : "Field certificateStore can not be null";
+		assert this.pendingPollRequest != null : "Field pendingCertRequest can not be null";
+		assert this.pendingCertAnns != null : "Field pendingCertAnns can not be null";
 	}
 
 	private void end() {
 		this.endEntityName = null;
 		this.subjectPrivateKey = null;
+		this.certificateStore = null;
+		this.pendingPollRequest = null;
+		this.pendingCertAnns = null;
 	}
 }

@@ -12,6 +12,7 @@ import java.util.Date;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response.Status;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
@@ -21,14 +22,16 @@ import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
 import org.adorys.plh.pkix.core.cmp.utils.X509CertificateHolderCollection;
 import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
-import org.adorys.plh.pkix.server.test.cmp.ContentTypeHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.client.fluent.Request;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.PKIBody;
 import org.bouncycastle.asn1.cmp.PKIHeader;
@@ -85,13 +88,14 @@ public class CMPMessagingTest {
         kGen.initialize(512);
         KeyPair senderKeyPair = kGen.generateKeyPair();
         // Self sign the certificate
-        String endEntityName = "CN=Francis Pouatcha";
-        X509CertificateHolder senderCert = V3CertificateUtils.makeSelfV3Certificate(senderKeyPair, endEntityName, senderKeyPair, endEntityName, provider);
+        X500Name francisX500Name = X500NameHelper.makeX500Name("Francis Pouatcha", "fpo@plhpkix.biz");
+        X509CertificateHolder senderCert = V3CertificateUtils.makeSelfV3Certificate(
+        		senderKeyPair, francisX500Name, new Date(), DateUtils.addYears(new Date(), 1), provider);
         byte[] sendeKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(senderCert);
 
-        GeneralName sender = new GeneralName(new X500Name(endEntityName));
+        GeneralName sender = new GeneralName(francisX500Name);
         // first initialization request must be sent to the server
-        X500Name recipientX500Name = new X500Name(PlhCMPSystem.getServerName());
+        X500Name recipientX500Name = PlhCMPSystem.getServerName();
         GeneralName recipient = new GeneralName(recipientX500Name);
 
         ContentSigner senderSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(provider).build(senderKeyPair.getPrivate());
@@ -122,11 +126,14 @@ public class CMPMessagingTest {
                                                   .build(senderSigner);
 		PKIMessage pkiMessage = mainMessage.toASN1Structure();
 		String addr = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME + "/req";
-		HttpResponse sendingRsponse = Request
-				.Post(addr)
-				.body(new ByteArrayEntity(pkiMessage.getEncoded(), ContentTypeHolder.PKIX_CMP_CONTENT_TYPE))
-				.execute()
-				.returnResponse();
+
+		HttpClient httpclient = new DefaultHttpClient();
+		HttpEntity entity = new ByteArrayEntity(pkiMessage.getEncoded());
+		HttpPost httpPost = new HttpPost(addr);
+		httpPost.setEntity(entity);
+		httpPost.addHeader("Content-Type", PlhCMPSystem.PKIX_CMP_STRING);
+		HttpResponse sendingRsponse = httpclient.execute(httpPost);
+		
 		Assert.assertTrue(sendingRsponse.getStatusLine().getStatusCode()==Status.OK.getStatusCode());
 		
 		InputStream inputStream = sendingRsponse.getEntity().getContent();
@@ -137,7 +144,7 @@ public class CMPMessagingTest {
 		if(responseSender==null)
 			Assert.fail("Missing response sender");
 		
-		if(!PlhCMPSystem.getServerName().equals(responseSender.getName().toString()))
+		if(!PlhCMPSystem.getServerName().equals(responseSender.getName()))
 			Assert.fail("Response not from sender");			
 
 		if(!generalPKIMessage.hasProtection())

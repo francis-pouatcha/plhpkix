@@ -6,16 +6,19 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
 import org.adorys.plh.pkix.core.cmp.utils.PrivateKeyUtils;
 import org.adorys.plh.pkix.core.cmp.utils.V3CertificateUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 
@@ -38,8 +41,8 @@ public class EndEntityInitializer {
 	
 	private PrivateKey serverPrivateKey;
 	private X509CertificateHolder serverCertificate;
-	private String serverName = PlhCMPSystem.getServerName();
-	private X500Name serverX500Name = new X500Name(serverName);
+	private X500Name serverX500Name = PlhCMPSystem.getServerName();
+	private String serverNameDBIdentifier = X500NameHelper.getCN(serverX500Name);
 	private byte[] serverKeyId;
 
 	@PostConstruct
@@ -59,7 +62,7 @@ public class EndEntityInitializer {
 			}
 		} 
 		
-		List<EndEntityKey> serverKeys = endEntityKeyRepository.findEndEntityKeyBySubjectName(serverName);
+		List<EndEntityKey> serverKeys = endEntityKeyRepository.findEndEntityKeyBySubjectName(serverNameDBIdentifier);
 		if(!serverKeys.isEmpty()){
 			EndEntityKey serverKey = serverKeys.iterator().next();
 			try {
@@ -87,12 +90,12 @@ public class EndEntityInitializer {
 		kGen.initialize(PlhCMPSystem.getKeySizeForKeyPair());
         KeyPair keyPair = kGen.generateKeyPair();
         serverPrivateKey = keyPair.getPrivate();
-        serverCertificate = V3CertificateUtils.makeSelfV3Certificate(keyPair, serverName, keyPair, serverName, provider);
+        serverCertificate = V3CertificateUtils.makeSelfV3Certificate(keyPair, serverX500Name, new Date(), DateUtils.addYears(new Date(), 1), provider);
 		serverKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(serverCertificate);
         endEntityCertRepository.storeEndEntityCert(serverCertificate);
 		
         EndEntityKey endEntityKey = new EndEntityKey();
-        endEntityKey.setSubjectName(serverName);
+        endEntityKey.setSubjectName(serverNameDBIdentifier);
 		byte[] encryptedKeyData;
 		try {
 			encryptedKeyData = PrivateKeyUtils.encryptPrivateKey(keyPair.getPrivate(), provider, PlhCMPSystem.getServerPassword());
@@ -103,17 +106,19 @@ public class EndEntityInitializer {
 		endEntityKeyRepository.storeEndEntityKey(endEntityKey );
 	}
 	
-	public EndEntityHolder createEntityRecord(String endEntityName, X509CertificateHolder selfSignedCertificate){
+	public EndEntityHolder createEntityRecord(X509CertificateHolder endentitySSignedCertificate){
 		Provider provider = PlhCMPSystem.getProvider();
 			    
-		X509CertificateHolder serverSignedCertificate = V3CertificateUtils.makeV3Certificate(selfSignedCertificate, serverPrivateKey, serverName, provider);
+		X509CertificateHolder serverSignedCertificate = V3CertificateUtils.makeV3Certificate(endentitySSignedCertificate, 
+				serverPrivateKey, serverCertificate, endentitySSignedCertificate.getNotBefore(), 
+				endentitySSignedCertificate.getNotAfter(), provider);
 		endEntityCertRepository.storeEndEntityCert(serverSignedCertificate);
-        endEntityCertRepository.storeEndEntityCert(selfSignedCertificate);
+        endEntityCertRepository.storeEndEntityCert(endentitySSignedCertificate);
 
 		return  new EndEntityBuilder()
 		.addCert(serverSignedCertificate)
-		.addCert(selfSignedCertificate)
-		.setSubjectName(endEntityName)
+		.addCert(endentitySSignedCertificate)
+		.setSubjectName(X500NameHelper.getCN(endentitySSignedCertificate.getSubject()))
 		.build();
 	}
 
@@ -122,9 +127,6 @@ public class EndEntityInitializer {
 	}
 	public X509CertificateHolder getServerCertificate() {
 		return serverCertificate;
-	}
-	public String getServerName() {
-		return serverName;
 	}
 
 	public byte[] getServerKeyId() {

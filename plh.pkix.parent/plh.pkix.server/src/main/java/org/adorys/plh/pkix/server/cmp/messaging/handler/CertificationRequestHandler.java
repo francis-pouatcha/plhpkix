@@ -85,7 +85,7 @@ public class CertificationRequestHandler extends CMPRequestHandler {
 		GeneralName senderAsRecipien = pkiHeader.getSender();
 		GeneralName recipientAsSender = pkiHeader.getRecipient();
 
-		X500Name serverX500Name = new X500Name(endEntityInitializer.getServerName());
+		X500Name serverX500Name = PlhCMPSystem.getServerName();
 		List<EndEntityCert> serverSignedCerts = endEntityCertRepository
 				.findEndEntityCertBySubjectAndIssuerName(serverX500Name, serverX500Name);
 		if (serverSignedCerts.isEmpty()) {

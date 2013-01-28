@@ -61,7 +61,14 @@ public class CertificationRequestProcessor {
 	private PrivateKey issuerPrivateKey;
 	private X509CertificateHolder issuerX509CertificateHolder;
 	private byte[] issuerKeyId;
+	private PendingResponses pendingResponses;
 	
+	
+	public CertificationRequestProcessor setPendingResponses(PendingResponses pendingResponses) {
+		this.pendingResponses = pendingResponses;
+		return this;
+	}
+
 	public CertificationRequestProcessor setIssuerName(X500Name issuerName) {
 		this.issuerName = issuerName;
 		return this;
@@ -83,11 +90,12 @@ public class CertificationRequestProcessor {
 		return this;
 	}
 
-	public HttpResponse process(GeneralPKIMessage pkiMessage) {
+	public HttpResponse process0(GeneralPKIMessage pkiMessage) {
 		
 		assert pkiMessage!=null : "Field pkiMessage can not be null";
 		assert issuerPrivateKey!=null : "Field issuerPrivateKey can not be null";
 		assert issuerX509CertificateHolder!=null : "Field issuerX509CertificateHolder can ot be null";
+		assert pendingResponses!=null : "Field pendingResponses can ot be null";
 		
 		if(issuerKeyId==null)
 			issuerKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(issuerX509CertificateHolder);
@@ -120,8 +128,8 @@ public class CertificationRequestProcessor {
 			} catch (Exception e) {
 				throw new IllegalStateException(e);
 			}
-			X509CertificateHolder x509CertificateHolder = V3CertificateUtils.makeSelfV3Certificate(subjectPublicKey, subject, issuerPrivateKey, issuerName, notBefore.getDate(), notAfter.getDate(), provider);
-
+			X509CertificateHolder x509CertificateHolder = V3CertificateUtils.makeV3Certificate(subjectPublicKey, subject, issuerPrivateKey, issuerX509CertificateHolder, notBefore.getDate(), notAfter.getDate(), provider);
+			
 			JceAsymmetricKeyWrapper jceAsymmetricKeyWrapper = new JceAsymmetricKeyWrapper(subjectPublicKey);
 			OutputEncryptor encryptor;
 			try {
@@ -183,7 +191,6 @@ public class CertificationRequestProcessor {
 		try {
 			mainMessage = protectedPKIMessageBuilder.build(senderSigner);
 			PKIMessage responseMessage = mainMessage.toASN1Structure();
-			PendingResponses pendingResponses = PendingResponses.getInstance(issuerName);
 			pendingResponses.add(responseMessage);
 			return ResponseFactory.create(HttpStatus.SC_OK, null);
 		} catch (CMPException e) {

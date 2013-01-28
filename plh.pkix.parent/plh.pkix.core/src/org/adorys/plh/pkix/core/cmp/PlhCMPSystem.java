@@ -5,11 +5,14 @@ import java.security.Security;
 
 import javax.crypto.NoSuchPaddingException;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public abstract class PlhCMPSystem {
 
 	private static final String SYS_PROP_SERVER_NAME="org.adorys.plh.pkix.server.cmp.server_name";
+	private static final String SYS_PROP_SERVER_EMAIL="org.adorys.plh.pkix.server.cmp.server_email";
 	private static final String SYS_PROP_SERVER_PASSWORD="org.adorys.plh.pkix.server.cmp.server_password";
 	private static final String SYS_PROP_KEYPAIR_ALGO="org.adorys.plh.pkix.server.cmp.keypair_algo";
 	private static final String SYS_PROP_KEYPAIR_KEYSIZE="org.adorys.plh.pkix.server.cmp.keypair_keysize";
@@ -37,8 +40,10 @@ public abstract class PlhCMPSystem {
 		return Integer.parseInt(ks);
 	}
 	
-	public static String getServerName(){
-		return System.getProperty(SYS_PROP_SERVER_NAME, "CN=server");
+	public static X500Name getServerName(){
+		String serverName = System.getProperty(SYS_PROP_SERVER_NAME, "server");
+		String serverEmail = System.getProperty(SYS_PROP_SERVER_EMAIL, "server@plhpkix.com");
+		return X500NameHelper.makeX500Name(serverName, serverEmail);
 	}
 
 	public static Provider getProvider(){

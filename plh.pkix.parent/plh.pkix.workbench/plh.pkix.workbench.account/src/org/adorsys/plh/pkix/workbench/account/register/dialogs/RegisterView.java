@@ -5,7 +5,6 @@ import javax.inject.Inject;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
-import org.adorsys.plh.pkix.client.cmp.CMPMessagingClient;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -146,10 +145,11 @@ public class RegisterView {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
-					CMPMessagingClient messagingClient = new CMPMessagingClient()
-						.withClientName(email)
-						.withAddressPrefix(addressPrefix);
-						messagingClient.initKeyPair();
+//					CertificateStore francisCertificateStore = new CertificateStore();
+//					PendingCertAnn francisPendingCertAnn = new PendingCertAnn();
+//					X500Name francisX500Name = X500NameHelper.makeX500Name("Francis Pouatcha", "fpo@plhpkix.biz");
+//					CMPMessagingClient francisClient = new CMPMessagingClient(adminX500Name, addressPrefix, new PrivateKeyHolder(), 
+//							francisCertificateStore, new PendingPollRequest(), francisPendingCertAnn, new PendingResponses());
 
 					// Register handler here.
 					MessageBox box = new MessageBox(shell, SWT.ICON_INFORMATION

@@ -23,46 +23,46 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 public class CertificateAnnouncementBuilder {
 
 	private X509CertificateHolder subjectCertificate;
+	private PrivateKeyHolder privateKeyHolder;
 	private X500Name subjectName;
 	
-	public CertificateAnnouncementHolder build(){
-		assert subjectCertificate!=null: "Field subjectCertificate can not be null";
-		assert subjectName!=null: "Field subjectName can not be null";
-		
-		Provider provider = PlhCMPSystem.getProvider();
-        GeneralName subject = new GeneralName(subjectName);
-        X500Name serverX500Name = new X500Name(PlhCMPSystem.getServerName());
-        GeneralName server = new GeneralName(serverX500Name);
-
-        PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(subjectName);
-        
-        ContentSigner subjectSigner;
+	public CertificateAnnouncementHolder build0(){
 		try {
-			subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption")
-				.setProvider(provider).build(privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(subjectCertificate)));
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
+			validate();
+			Provider provider = PlhCMPSystem.getProvider();
+	        GeneralName subject = new GeneralName(subjectName);
+	        GeneralName server = new GeneralName(PlhCMPSystem.getServerName());
+	
+	        ContentSigner subjectSigner;
+			try {
+				subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption")
+					.setProvider(provider).build(privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(subjectCertificate)));
+			} catch (OperatorCreationException e) {
+				throw new IllegalStateException(e);
+			}
+			
+	        byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificate);
+	        CMPCertificate cmpCertificate = new CMPCertificate(subjectCertificate.toASN1Structure());
+	
+	        ProtectedPKIMessage mainMessage;
+			try {
+				mainMessage = new ProtectedPKIMessageBuilder(subject, server)
+				    .setBody(new PKIBody(PKIBody.TYPE_CERT_ANN, cmpCertificate))
+				    .addCMPCertificate(subjectCertificate)
+				    .setMessageTime(new Date())
+				    .setSenderKID(subjectKeyId)
+				    .setSenderNonce(UUIDUtils.newUUIDAsBytes())
+				    .setTransactionID(UUIDUtils.newUUIDAsBytes())
+				    .build(subjectSigner);
+			} catch (CMPException e) {
+				throw new IllegalStateException(e);
+			}
+	        
+	        PKIMessage pkiMessage = mainMessage.toASN1Structure();
+			return new CertificateAnnouncementHolder(pkiMessage);
+		} finally {
+			end();
 		}
-		
-        byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificate);
-        CMPCertificate cmpCertificate = new CMPCertificate(subjectCertificate.toASN1Structure());
-
-        ProtectedPKIMessage mainMessage;
-		try {
-			mainMessage = new ProtectedPKIMessageBuilder(subject, server)
-			    .setBody(new PKIBody(PKIBody.TYPE_CERT_ANN, cmpCertificate))
-			    .addCMPCertificate(subjectCertificate)
-			    .setMessageTime(new Date())
-			    .setSenderKID(subjectKeyId)
-			    .setSenderNonce(UUIDUtils.newUUIDAsBytes())
-			    .setTransactionID(UUIDUtils.newUUIDAsBytes())
-			    .build(subjectSigner);
-		} catch (CMPException e) {
-			throw new IllegalStateException(e);
-		}
-        
-        PKIMessage pkiMessage = mainMessage.toASN1Structure();
-		return new CertificateAnnouncementHolder(pkiMessage);
 	}
 
 	public CertificateAnnouncementBuilder withSubjectCertificate(X509CertificateHolder subjectCertificate) {
@@ -73,5 +73,22 @@ public class CertificateAnnouncementBuilder {
 	public CertificateAnnouncementBuilder withSubjectName(X500Name subjectName) {
 		this.subjectName = subjectName;
 		return this;
+	}
+
+	public CertificateAnnouncementBuilder withPrivateKeyHolder(PrivateKeyHolder privateKeyHolder) {
+		this.privateKeyHolder = privateKeyHolder;
+		return this;
+	}
+	
+	private void validate(){
+		assert subjectCertificate!=null: "Field subjectCertificate can not be null";
+		assert subjectName!=null: "Field subjectName can not be null";
+		assert privateKeyHolder!=null: "Field privateKeyHolder can not be null";
+	}
+	
+	private void end(){
+		subjectCertificate=null;
+		subjectName=null;
+		privateKeyHolder=null;
 	}
 }

@@ -8,8 +8,12 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
+import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
+import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
 import org.adorys.plh.pkix.server.cmp.utils.JaxRsActivator;
 import org.adorys.plh.pkix.server.test.cmp.AbstractCMPMessagingServerTest;
 import org.apache.http.HttpResponse;
@@ -47,15 +51,16 @@ public class ScenarioTest {
 	public void test() throws OperatorCreationException, GeneralSecurityException, IOException, CertException, CMPException{
 		String addressPrefix = deploymentUrl.toString()+ RESOURCE_PREFIX + SERVICE_NAME;
 
-		X500Name adminX500Name = new X500Name("CN=Admin");
-		CMPMessagingClient adminClient = new CMPMessagingClient()
-			.withClientName(adminX500Name)
-			.withAddressPrefix(addressPrefix);
+		X500Name adminX500Name = X500NameHelper.makeX500Name("Admin", "admin@plhpkix.biz");
+		CMPMessagingClient adminClient = new CMPMessagingClient(adminX500Name, addressPrefix, new PrivateKeyHolder(), 
+				new CertificateStore(), new PendingPollRequest(), new PendingCertAnn(), new PendingResponses());
+
 		
-		X500Name francisX500Name = new X500Name("CN=Francis Pouatcha");
-		CMPMessagingClient francisClient = new CMPMessagingClient()
-		.withClientName(francisX500Name)
-		.withAddressPrefix(addressPrefix);
+		CertificateStore francisCertificateStore = new CertificateStore();
+		PendingCertAnn francisPendingCertAnn = new PendingCertAnn();
+		X500Name francisX500Name = X500NameHelper.makeX500Name("Francis Pouatcha", "fpo@plhpkix.biz");
+		CMPMessagingClient francisClient = new CMPMessagingClient(adminX500Name, addressPrefix, new PrivateKeyHolder(), 
+				francisCertificateStore, new PendingPollRequest(), francisPendingCertAnn, new PendingResponses());
 		
 		adminClient.initKeyPair();
 		
@@ -81,14 +86,12 @@ public class ScenarioTest {
 		
 		Response pollRequestsResp = francisClient.pollRequests(francisX500Name);
 		Assert.assertTrue(pollRequestsResp.getStatus()+"",pollRequestsResp.getStatus()==Status.OK.getStatusCode());
-		CertificateStore certificateStore = CertificateStore.getInstance(francisX500Name);
-		Assert.assertNotNull(certificateStore);
+		Assert.assertNotNull(francisCertificateStore);
 		
-		Assert.assertNotNull(certificateStore.getCertificate(francisX500Name, francisX500Name));
-		Assert.assertNotNull(certificateStore.getCertificate(francisX500Name, adminX500Name));
+		Assert.assertNotNull(francisCertificateStore.getCertificate(francisX500Name, francisX500Name));
+		Assert.assertNotNull(francisCertificateStore.getCertificate(francisX500Name, adminX500Name));
 
-		PendingCertAnn pendingCertAnn = PendingCertAnn.getInstance(francisX500Name);
-		Assert.assertNotNull(pendingCertAnn);
+		Assert.assertNotNull(francisPendingCertAnn);
 
 		Response announceCertificates = francisClient.announceCertificates();
 		Assert.assertTrue(announceCertificates.getStatus()==Status.OK.getStatusCode());

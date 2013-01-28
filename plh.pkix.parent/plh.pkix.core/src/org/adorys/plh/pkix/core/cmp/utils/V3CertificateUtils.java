@@ -2,17 +2,23 @@ package org.adorys.plh.pkix.core.cmp.utils;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.UUID;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.X509Extension;
+import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -20,162 +26,148 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 public class V3CertificateUtils {
 
-	public static X509CertificateHolder makeSelfV3Certificate(KeyPair subKP,
-			String _subDN, KeyPair issKP, String _issDN, Provider provider) {
-
-		PublicKey subPub = subKP.getPublic();
-		PrivateKey issPriv = issKP.getPrivate();
-
-		X509v3CertificateBuilder v1CertGen = new JcaX509v3CertificateBuilder(
-				new X500Name(_issDN), BigInteger.valueOf(System
-						.currentTimeMillis()), new Date(
-						System.currentTimeMillis()), new Date(
-						System.currentTimeMillis()
-								+ (1000L * 60 * 60 * 24 * 100)), new X500Name(
-						_subDN), subPub);
-
-		ContentSigner signer;
-		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA").setProvider(
-					provider).build(issPriv);
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		}
-
-		return v1CertGen.build(signer);
-	}
-
 	public static X509CertificateHolder makeSelfV3Certificate(
-			KeyPair subKP,
-			X500Name _subDN, 
-			KeyPair issKP, 
-			X500Name _issDN, 
-			Date notBefore,
-			Date notAfter,
-			Provider provider) {
-
-		PublicKey subPub = subKP.getPublic();
-		PrivateKey issPriv = issKP.getPrivate();
-
-		X509v3CertificateBuilder v1CertGen = new JcaX509v3CertificateBuilder(
-				_issDN,// issuer 
-				BigInteger.valueOf(System.currentTimeMillis()), // Serial
-				notBefore, 
-				notAfter, 
-				_subDN, 
-				subPub
-		);
-
-		ContentSigner signer;
+			KeyPair subjectKeyPair, X500Name subject, Date notBefore,
+			Date notAfter, Provider provider)  {
 		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA").setProvider(
-					provider).build(issPriv);
-		} catch (OperatorCreationException e) {
+			PublicKey subPub = subjectKeyPair.getPublic();
+			PrivateKey issPriv = subjectKeyPair.getPrivate();
+			PublicKey issPub = subjectKeyPair.getPublic();
+
+			X500Name issuer = subject;
+			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
+
+			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
+					issuer, serial, notBefore, notAfter, subject, subPub);
+
+			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
+					extUtils.createSubjectKeyIdentifier(subPub));
+
+			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
+					extUtils.createAuthorityKeyIdentifier(issPub));
+
+			v3CertGen.addExtension(X509Extension.basicConstraints, true,
+					new BasicConstraints(0));
+
+			// GeneralNames subjectAltName = new GeneralNames(new GeneralName(
+			// GeneralName.rfc822Name, email));
+			// v3CertGen.addExtension(X509Extension.subjectAlternativeName,
+			// false,
+			// subjectAltName);
+
+			ContentSigner signer;
+			try {
+				signer = new JcaContentSignerBuilder("SHA1WithRSA")
+						.setProvider(provider).build(issPriv);
+			} catch (OperatorCreationException e) {
+				throw new IllegalStateException(e);
+			}
+			return v3CertGen.build(signer);
+		} catch (CertIOException e) {
+			throw new IllegalStateException(e);
+		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException(e);
 		}
-
-		return v1CertGen.build(signer);
 	}
-	
+
 	public static X509CertificateHolder makeV3Certificate(
 			X509CertificateHolder subjectCertificate,
-			PrivateKey issuerPrivatekey, String _issDN, Provider provider) {
-
-		PublicKey subPub;
+			PrivateKey issuerPrivatekey,
+			X509CertificateHolder issuerCertificate, Date notBefore,
+			Date notAfter, Provider provider) {
 		try {
-			subPub = PublicKeyUtils.getPublicKey(subjectCertificate, provider);
-		} catch (Exception e) {
+			PublicKey subPub;
+			try {
+				subPub = PublicKeyUtils.getPublicKey(subjectCertificate,
+						provider);
+			} catch (Exception e) {
+				throw new IllegalStateException(e);
+			}
+
+			X500Name subjectDN = subjectCertificate.getSubject();
+			X500Name issuerDN = issuerCertificate.getSubject();
+			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
+			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
+					issuerDN, serial, notBefore, notAfter, subjectDN, subPub);
+
+			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
+					extUtils.createSubjectKeyIdentifier(subPub));
+
+			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
+					extUtils.createAuthorityKeyIdentifier(issuerCertificate));
+
+			v3CertGen.addExtension(X509Extension.basicConstraints, true,
+					new BasicConstraints(false));
+
+			// GeneralNames subjectAltName = new GeneralNames(new
+			// GeneralName(GeneralName.rfc822Name, email));
+			// v3CertGen.addExtension(X509Extension.subjectAlternativeName,
+			// false, subjectAltName);
+
+			ContentSigner signer;
+			try {
+				signer = new JcaContentSignerBuilder("SHA1WithRSA")
+						.setProvider(provider).build(issuerPrivatekey);
+			} catch (OperatorCreationException e) {
+				throw new IllegalStateException(e);
+			}
+
+			return v3CertGen.build(signer);
+		} catch (CertIOException e) {
+			throw new IllegalStateException(e);
+		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException(e);
 		}
-
-		X500Name subjectDN = subjectCertificate.getSubject();
-
-		X509v3CertificateBuilder v1CertGen = new JcaX509v3CertificateBuilder(
-				new X500Name(_issDN), BigInteger.valueOf(System
-						.currentTimeMillis()), new Date(
-						System.currentTimeMillis()), new Date(
-						System.currentTimeMillis()
-								+ (1000L * 60 * 60 * 24 * 100)), subjectDN,
-				subPub);
-
-		ContentSigner signer;
-		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA").setProvider(
-					provider).build(issuerPrivatekey);
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		}
-
-		return v1CertGen.build(signer);
 	}
 
-	public static X509CertificateHolder makeSelfV3Certificate(
-			X509CertificateHolder subjectCertificate,
-			X500Name _subDN, 
-			PrivateKey issuerPrivatekey, 
-			X500Name _issDN, 
-			Date notBefore,
-			Date notAfter,
+	public static X509CertificateHolder makeV3Certificate(
+			PublicKey subjectPublicKey, X500Name subjectDN,
+			PrivateKey issuerPrivatekey,
+			X509CertificateHolder issuerCertificate, Date notBefore,
+			Date notAfter, Provider provider) {
+
+		try {
+			X500Name issuerDN = issuerCertificate.getSubject();
+			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
+			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
+					issuerDN, serial, notBefore, notAfter, subjectDN,
+					subjectPublicKey);
+
+			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
+					extUtils.createSubjectKeyIdentifier(subjectPublicKey));
+
+			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
+					extUtils.createAuthorityKeyIdentifier(issuerCertificate));
+
+			v3CertGen.addExtension(X509Extension.basicConstraints, true,
+					new BasicConstraints(false));
+
+			// GeneralNames subjectAltName = new GeneralNames(new
+			// GeneralName(GeneralName.rfc822Name, email));
+			// v3CertGen.addExtension(X509Extension.subjectAlternativeName,
+			// false, subjectAltName);
+
+			ContentSigner signer;
+			try {
+				signer = new JcaContentSignerBuilder("SHA1WithRSA")
+						.setProvider(provider).build(issuerPrivatekey);
+			} catch (OperatorCreationException e) {
+				throw new IllegalStateException(e);
+			}
+
+			return v3CertGen.build(signer);
+		} catch (CertIOException e) {
+			throw new IllegalStateException(e);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	public static X509Certificate getCertificate(X509CertificateHolder holder,
 			Provider provider) {
-
-		PublicKey subPub;
-		try {
-			subPub = PublicKeyUtils.getPublicKey(subjectCertificate, provider);
-		} catch (Exception e) {
-			throw new IllegalStateException(e);
-		}
-
-		X509v3CertificateBuilder v1CertGen = new JcaX509v3CertificateBuilder(
-				_issDN,// issuer 
-				BigInteger.valueOf(System.currentTimeMillis()), // Serial
-				notBefore, 
-				notAfter, 
-				_subDN, 
-				subPub
-		);
-
-		ContentSigner signer;
-		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA").setProvider(
-					provider).build(issuerPrivatekey);
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		}
-
-		return v1CertGen.build(signer);
-	}
-
-	
-	public static X509CertificateHolder makeSelfV3Certificate(
-			PublicKey subjectPublicKey,
-			X500Name _subDN, 
-			PrivateKey issuerPrivatekey, 
-			X500Name _issDN, 
-			Date notBefore,
-			Date notAfter,
-			Provider provider) {
-
-		X509v3CertificateBuilder v1CertGen = new JcaX509v3CertificateBuilder(
-				_issDN,// issuer 
-				BigInteger.valueOf(System.currentTimeMillis()), // Serial
-				notBefore, 
-				notAfter, 
-				_subDN, 
-				subjectPublicKey
-		);
-
-		ContentSigner signer;
-		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA").setProvider(
-					provider).build(issuerPrivatekey);
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		}
-
-		return v1CertGen.build(signer);
-	}
-	
-	public static X509Certificate getCertificate(X509CertificateHolder holder, Provider provider){
 		try {
 			return new JcaX509CertificateConverter().setProvider(provider)
 					.getCertificate(holder);

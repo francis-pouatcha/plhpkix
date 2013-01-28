@@ -207,8 +207,10 @@ public class InitializationRequestHandler extends CMPRequestHandler {
 		if(registerRecord){
 			endEntityCertRepository.storeEndEntityCert(senderCertificate);
 			
-			X509CertificateHolder serverSignedCertificate = V3CertificateUtils.makeV3Certificate(senderCertificate, endEntityInitializer.getServerPrivateKey(),
-					endEntityInitializer.getServerName(), PlhCMPSystem.getProvider());
+			X509CertificateHolder serverSignedCertificate = V3CertificateUtils
+					.makeV3Certificate(senderCertificate, endEntityInitializer.getServerPrivateKey(), 
+							endEntityInitializer.getServerCertificate(), senderCertificate.getNotBefore(), 
+							senderCertificate.getNotAfter(), PlhCMPSystem.getProvider());
 			endEntityCertRepository.storeEndEntityCert(serverSignedCertificate);
 		}
 		

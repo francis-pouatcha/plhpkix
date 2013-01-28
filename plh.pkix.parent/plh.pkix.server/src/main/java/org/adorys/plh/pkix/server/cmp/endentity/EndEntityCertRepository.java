@@ -9,6 +9,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 
@@ -20,14 +21,14 @@ public class EndEntityCertRepository {
 
 	public List<EndEntityCert> findEndEntityCertBySubjectAndIssuerName(X500Name subjectName, X500Name issuerName){
 		TypedQuery<EndEntityCert> query = entityManager.createNamedQuery(EndEntityCert.BY_SUBJECT_ISSUER_NAME, EndEntityCert.class);
-		query.setParameter("subjectName", subjectName.toString());
-		query.setParameter("issuerName", issuerName.toString());
+		query.setParameter("subjectName", X500NameHelper.getCN(subjectName));
+		query.setParameter("issuerName", X500NameHelper.getCN(issuerName));
 		return query.getResultList();
 	}
 
 	public List<EndEntityCert> findEndEntityCertBySubjectName(X500Name subjectName){
 		TypedQuery<EndEntityCert> query = entityManager.createNamedQuery(EndEntityCert.BY_SUBJECT_NAME, EndEntityCert.class);
-		query.setParameter("subjectName", subjectName.toString());
+		query.setParameter("subjectName", X500NameHelper.getCN(subjectName));
 		return query.getResultList();
 	}
 
@@ -45,8 +46,8 @@ public class EndEntityCertRepository {
 	        endEntityCert = entityManager.merge(endEntityCert);
 		} else {
 	        endEntityCert = new EndEntityCert();
-	        endEntityCert.setSubjectName(certificate.getSubject().toString());
-	        endEntityCert.setIssuerName(certificate.getIssuer().toString());
+	        endEntityCert.setSubjectName(X500NameHelper.getCN(certificate.getSubject()));
+	        endEntityCert.setIssuerName(X500NameHelper.getCN(certificate.getIssuer()));
 			endEntityCert.setId(UUID.randomUUID().toString());
 	        try {
 				endEntityCert.setCertificate(certificate.getEncoded());

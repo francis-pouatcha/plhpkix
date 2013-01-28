@@ -46,53 +46,57 @@ public class CertificationRequestBuilder {
 	private X500Name subjectName;
     private X500Name certAuthorityName;
     private X509CertificateHolder subjectCert;
+    private PrivateKeyHolder privateKeyHolder;
 
-    public PendingRequestHolder build() throws NoSuchAlgorithmException, OperatorCreationException, CMPException{
+    public PendingRequestHolder build0() throws NoSuchAlgorithmException, OperatorCreationException, CMPException{
+    	try {
+    		validate();
+    		Provider provider = PlhCMPSystem.getProvider();
+
+            byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCert);
+
+            GeneralName subject = new GeneralName(subjectName);
+            GeneralName ca = new GeneralName(certAuthorityName);
+            
+            
+            PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(subjectCert));
+    		ContentSigner subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(provider).build(subjectPrivateKey );
+            
+            // The initialization request must specify the SubjectPublicKeyInfo, The keyId and the validity
+            // of each certificate requested.
+            Date notBefore = new Date();
+            Date notAfter = DateUtils.addYears(notBefore, 10);
+    		OptionalValidity optionalValidity = new OptionalValidityHolder(notBefore,notAfter).getOptionalValidity();
+    		CertTemplate certTemplate = new CertTemplateBuilder()
+            	.setSubject(subjectName)
+            	.setIssuer(certAuthorityName)
+            	.setPublicKey(subjectCert.getSubjectPublicKeyInfo())
+            	.setValidity(optionalValidity).build();
+    		byte[] txId = UUIDUtils.newUUIDAsBytes();
+    		ASN1Integer certReqId = new ASN1Integer(new BigInteger(txId));
+    		Controls controls = null;
+    		CertRequest certRequest = new CertRequest(certReqId, certTemplate, controls);
+    		CertReqMsg certReqMsg = new CertReqMsg(certRequest, null, null);
+            CertReqMessages certReqMessages = new CertReqMessages(new CertReqMsg[]{certReqMsg});
+            ProtectedPKIMessage mainMessage = new ProtectedPKIMessageBuilder(subject, ca)
+                                                      .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, certReqMessages))
+                                                      .addCMPCertificate(subjectCert)
+                                                      .setMessageTime(new Date())
+                                                      .setSenderKID(subjectKeyId)
+    											      .setSenderNonce(UUIDUtils.newUUIDAsBytes())
+    											      .setTransactionID(txId)
+                                                      .build(subjectSigner);
+    		PKIMessage pkiMessage = mainMessage.toASN1Structure();
+    		
+    		PendingRequestHolder pendingRequestHolder = new PendingRequestHolder();
+    		pendingRequestHolder.setPkiMessage(pkiMessage);
+    		
+    		return pendingRequestHolder;
+    	} finally {
+    		end();
+    	}
     	
-    	validate();
-    	
-		Provider provider = PlhCMPSystem.getProvider();
-
-        byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCert);
-
-        GeneralName subject = new GeneralName(subjectName);
-        GeneralName ca = new GeneralName(certAuthorityName);
-        
-        PrivateKeyHolder privateKeyHolder = PrivateKeyHolder.getInstance(subjectName);
-        
-        PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(subjectCert));
-		ContentSigner subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(provider).build(subjectPrivateKey );
-        
-        // The initialization request must specify the SubjectPublicKeyInfo, The keyId and the validity
-        // of each certificate requested.
-        Date notBefore = new Date();
-        Date notAfter = DateUtils.addYears(notBefore, 10);
-		OptionalValidity optionalValidity = new OptionalValidityHolder(notBefore,notAfter).getOptionalValidity();
-		CertTemplate certTemplate = new CertTemplateBuilder()
-        	.setSubject(subjectName)
-        	.setIssuer(certAuthorityName)
-        	.setPublicKey(subjectCert.getSubjectPublicKeyInfo())
-        	.setValidity(optionalValidity).build();
-		byte[] txId = UUIDUtils.newUUIDAsBytes();
-		ASN1Integer certReqId = new ASN1Integer(new BigInteger(txId));
-		Controls controls = null;
-		CertRequest certRequest = new CertRequest(certReqId, certTemplate, controls);
-		CertReqMsg certReqMsg = new CertReqMsg(certRequest, null, null);
-        CertReqMessages certReqMessages = new CertReqMessages(new CertReqMsg[]{certReqMsg});
-        ProtectedPKIMessage mainMessage = new ProtectedPKIMessageBuilder(subject, ca)
-                                                  .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, certReqMessages))
-                                                  .addCMPCertificate(subjectCert)
-                                                  .setMessageTime(new Date())
-                                                  .setSenderKID(subjectKeyId)
-											      .setSenderNonce(UUIDUtils.newUUIDAsBytes())
-											      .setTransactionID(txId)
-                                                  .build(subjectSigner);
-		PKIMessage pkiMessage = mainMessage.toASN1Structure();
 		
-		PendingRequestHolder pendingRequestHolder = new PendingRequestHolder();
-		pendingRequestHolder.setPkiMessage(pkiMessage);
-		
-		return pendingRequestHolder;
 	}
 
 	public CertificationRequestBuilder withSubjectName(X500Name subjectName) {
@@ -110,10 +114,22 @@ public class CertificationRequestBuilder {
 		return this;
 	}
 
+	public CertificationRequestBuilder withPrivateKeyHolder(PrivateKeyHolder privateKeyHolder) {
+		this.privateKeyHolder = privateKeyHolder;
+		return this;
+	}
+
 	private void validate() {
 		assert subjectName!=null:"Field subjectName can not be null";
 		assert certAuthorityName!=null:"Field certAuthorityName can not be null";
 		assert subjectCert!=null:"Field subjectCert can not be null";
+		assert privateKeyHolder!=null:"Field privateKeyHolder can not be null";
 	}
-
+	
+	private void end(){
+		subjectName=null;
+		subjectCert=null;
+		certAuthorityName=null;
+		privateKeyHolder=null;
+	}
 }
