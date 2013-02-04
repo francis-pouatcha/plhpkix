@@ -17,6 +17,8 @@ Require-Bundle: org.apache.commons.lang;bundle-version="2.6.0",
  org.apache.commons.io;bundle-version="2.0.1",
  javax.mail;bundle-version="1.4.0"
 Export-Package: org.adorsys.plh.pkix.core;uses:="org.osgi.framework",
+ org.adorsys.plh.pkix.core.cms.utils,
+ org.adorsys.plh.pkix.core.x500,
  org.adorys.plh.pkix.core.cmp;uses:="org.bouncycastle.asn1.cmp",
  org.adorys.plh.pkix.core.cmp.certann;uses:="org.bouncycastle.asn1.cmp,org.bouncycastle.asn1.x500,org.bouncycastle.cert",
  org.adorys.plh.pkix.core.cmp.certrequest;

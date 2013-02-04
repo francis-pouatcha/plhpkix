@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
 import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
 import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
@@ -140,9 +141,17 @@ public class SignEncryptUtils {
 	}
 	
 	public static void decrypt( 
-			PrivateKeyHolder recipientPrivateKeyHolder,
+			PrivateKeyHolder subjectPrivateKeyHolder,
 			String subjectCN,
 			CertificateStore certificateStore,
+			InputStream inputStream, OutputStream outputStream) throws IOException {
+		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectCN);
+		decrypt(subjectPrivateKeyHolder, subjectCertificate, inputStream, outputStream);
+	}
+
+	public static void decrypt( 
+			PrivateKeyHolder subjectPrivateKeyHolder,
+			X509CertificateHolder subjectCertificate,
 			InputStream inputStream, OutputStream outputStream) throws IOException {
 		CMSEnvelopedDataParser cmsEnvelopedDataParser;
 		try {
@@ -152,7 +161,6 @@ public class SignEncryptUtils {
 		}
         RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
 
-		X509CertificateHolder subjectCertificate = certificateStore.getCertificate(subjectCN);
 		byte[] thisSubjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificate);
         
         @SuppressWarnings("rawtypes")
@@ -170,13 +178,13 @@ public class SignEncryptUtils {
             break;
 		}
 
-        if(recipient==null) throw new IllegalStateException("Subject " + subjectCN + " not recipient of this file");
+        if(recipient==null) throw new IllegalStateException("Subject " + subjectCertificate.getSubject() + " not recipient of this file");
         
         Provider provider = PlhCMPSystem.getProvider();
         CMSTypedStream contentStream;
 		try {
 			contentStream = recipient.getContentStream(
-					new JceKeyTransEnvelopedRecipient(recipientPrivateKeyHolder.getPrivateKey(subjectCertificate)).setProvider(provider));
+					new JceKeyTransEnvelopedRecipient(subjectPrivateKeyHolder.getPrivateKey(subjectCertificate)).setProvider(provider));
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
 		}
@@ -187,11 +195,9 @@ public class SignEncryptUtils {
         IOUtils.closeQuietly(outputStream);
 	}
 
-
 	public static void verify(InputStream signedFileInputStream, 
 			CertificateStore certificateStore,
 			OutputStream outputStream) throws IOException {
-
 		Provider provider = PlhCMPSystem.getProvider();
         BufferedInputStream bufferedSignedInputStream = new BufferedInputStream(signedFileInputStream);
         CMSSignedDataParser sp;
@@ -227,7 +233,8 @@ public class SignEncryptUtils {
         		X509CertificateHolder cert = (X509CertificateHolder)object2;
         		
         		// Verify Certificate
-        		X509CertificateHolder certificate = certificateStore.getCertificate(cert.getSubject(), cert.getIssuer());
+        		X509CertificateHolder certificate = certificateStore.getCertificate(
+        				X500NameHelper.getCN(cert.getSubject()), X500NameHelper.getCN(cert.getIssuer()));
         		if(certificate==null)throw new SecurityException("Certificate not in store");
         		
         		// Verify signature
@@ -246,7 +253,7 @@ public class SignEncryptUtils {
 		}
         throw new SecurityException("Could not verify content.");
 	}
-	
+
 	public static void signEncrypt(
 			PrivateKeyHolder privateKeyHolder, 
 			X509CertificateHolder subjectCertificate,

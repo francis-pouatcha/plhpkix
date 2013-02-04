@@ -3,7 +3,7 @@
   <children xsi:type="basic:TrimmedWindow" xmi:id="_gnGyAGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.trimmedwindow.0" label="Plooh Workbench Desktop" tooltip="Plooh Workbench Desktop" width="800" height="600">
     <children xsi:type="advanced:PerspectiveStack" xmi:id="_xJWcUGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.perspectivestack.0">
       <children xsi:type="advanced:Perspective" xmi:id="_79etQGQbEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.perspective.0" label="Default Perspective" iconURI="platform:/plugin/plh.pkix.workbench.desktop/icons/application_split.png">
-        <children xsi:type="basic:PartSashContainer" xmi:id="_ODi6wGQcEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.partsashcontainer.0" horizontal="true">
+        <children xsi:type="basic:PartSashContainer" xmi:id="_ODi6wGQcEeKHXKmm4nkYbw" elementId="plh.pkix.workbench.desktop.defaultPartSashContainer" horizontal="true">
           <children xsi:type="basic:PartStack" xmi:id="_cGeC8GQcEeKHXKmm4nkYbw" elementId="org.eclipse.e4.primaryNavigationStack" containerData="30">
             <tags>org.eclipse.e4.primaryNavigationStack</tags>
           </children>

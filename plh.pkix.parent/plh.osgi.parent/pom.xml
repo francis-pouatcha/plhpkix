@@ -31,6 +31,11 @@
 			<layout>p2</layout>
 			<url>http://download.eclipse.org/tools/orbit/downloads/drops/I20130115141820/repository</url>
 		</repository>
+		<repository>
+			<id>gemini</id>
+			<layout>default</layout>
+			<url>http://download.eclipse.org/gemini/mvn</url>
+		</repository>
 	</repositories>
 	<build>
 		<plugins>

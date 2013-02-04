@@ -1,16 +1,21 @@
 package org.adorys.plh.pkix.core.cmp.utils;
 
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.UUID;
 
+import org.adorsys.plh.pkix.core.x500.X500NameHelper;
+import org.apache.commons.lang.StringUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.X509Extension;
@@ -172,6 +177,31 @@ public class V3CertificateUtils {
 			return new JcaX509CertificateConverter().setProvider(provider)
 					.getCertificate(holder);
 		} catch (CertificateException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+	
+	public static void checkSelfSigned(X509CertificateHolder certificateHolder, 
+			String subjectCN, String isuerCN, Provider provider)
+					throws SecurityException{
+		String providedSectCN = X500NameHelper.getCN(certificateHolder.getSubject());
+		String providedIssuerCN = X500NameHelper.getCN(certificateHolder.getIssuer());
+		if (!StringUtils.equalsIgnoreCase(subjectCN, providedSectCN) ||
+				!StringUtils.equalsIgnoreCase(isuerCN, providedIssuerCN)){
+			throw new SecurityException("both certificate not matching");
+		}
+		X509Certificate certificate = getCertificate(certificateHolder, provider);
+		try {
+			certificate.verify(certificate.getPublicKey());
+		} catch (InvalidKeyException e) {
+			throw new SecurityException(e);
+		} catch (CertificateException e) {
+			throw new SecurityException(e);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		} catch (NoSuchProviderException e) {
+			throw new IllegalStateException(e);
+		} catch (SignatureException e) {
 			throw new IllegalStateException(e);
 		}
 	}

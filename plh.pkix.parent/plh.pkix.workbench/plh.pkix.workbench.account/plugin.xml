@@ -4,4 +4,12 @@
    <extension id="id1" point="org.eclipse.e4.workbench.model">
       <fragment uri="xmi/fragment.e4xmi"/>
    </extension>
+   <extension
+         id="id1"
+         point="org.eclipse.e4.workbench.model">
+      <processor
+            beforefragment="true"
+            class="org.adorsys.plh.pkix.workbench.account.processor.AccountProcessor">
+      </processor>
+   </extension>
 </plugin>
