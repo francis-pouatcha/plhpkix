@@ -6,7 +6,7 @@ import java.net.URL;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.adorsys.plh.pkix.client.sedent.identity.DeviceDir;
+import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccountRootDir;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.e4.core.di.annotations.Execute;
 import org.eclipse.e4.ui.internal.workbench.E4Workbench;
@@ -33,7 +33,7 @@ public class AccountProcessor {
 	public void execute(){
 		URL url = instanceLocation.getURL();
 		File file = new File(url.getPath());
-		DeviceDir deviceDir = new DeviceDir(file.getAbsolutePath());
-		context.set(DeviceDir.class, deviceDir);
+		DeviceAccountRootDir deviceDir = new DeviceAccountRootDir(file.getAbsolutePath());
+		context.set(DeviceAccountRootDir.class, deviceDir);
 	}
 }

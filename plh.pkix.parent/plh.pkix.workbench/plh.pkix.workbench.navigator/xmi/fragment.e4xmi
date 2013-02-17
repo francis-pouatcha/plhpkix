@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ASCII"?>
 <fragment:ModelFragments xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment" xmi:id="_WisR8HZEEd-peaY5fFiGdQ">
   <fragments xsi:type="fragment:StringModelFragment" xmi:id="_ZN23sHZEEd-peaY5fFiGdQ" featurename="children" parentElementId="org.eclipse.e4.primaryNavigationStack">
-    <elements xsi:type="basic:Part" xmi:id="_81XEMHZbEd-Sp-lHczMPZw" contributionURI="bundleclass://plh.pkix.workbench.navigator/org.adorsys.plh.pkix.workbench.navigator.internal.ResourceNavigator" label="Navigator" iconURI="platform:/plugin/plh.pkix.workbench.navigator/icons/application_side_tree.png"/>
+    <elements xsi:type="basic:Part" xmi:id="_81XEMHZbEd-Sp-lHczMPZw" contributionURI="bundleclass://plh.pkix.workbench.navigator/org.adorsys.plh.pkix.workbench.fileviewer.FileViewer" label="Navigator" iconURI="platform:/plugin/plh.pkix.workbench.navigator/icons/application_side_tree.png"/>
   </fragments>
 </fragment:ModelFragments>

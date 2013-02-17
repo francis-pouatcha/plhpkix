@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Plooh Messing Db Client
+Bundle-SymbolicName: plh.pkix.client.messaging.db
+Bundle-Version: 0.0.1.qualifier
+Bundle-Vendor: Adorsys
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: plh.pkix.client.services;bundle-version="0.0.1"

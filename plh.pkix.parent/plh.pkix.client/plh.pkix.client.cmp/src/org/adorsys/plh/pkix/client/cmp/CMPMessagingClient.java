@@ -8,31 +8,32 @@ import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 
-import org.adorys.plh.pkix.core.cmp.PendingRequestHolder;
-import org.adorys.plh.pkix.core.cmp.PlhCMPSystem;
-import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementBuilder;
-import org.adorys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
-import org.adorys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
-import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
-import org.adorys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
-import org.adorys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
-import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
-import org.adorys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
-import org.adorys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
-import org.adorys.plh.pkix.core.cmp.keypair.KeyPairBuilder;
-import org.adorys.plh.pkix.core.cmp.message.PkiMessageConformity;
-import org.adorys.plh.pkix.core.cmp.pollrequest.PollReplyProcessor;
-import org.adorys.plh.pkix.core.cmp.pollrequest.PollRequestBuilder;
-import org.adorys.plh.pkix.core.cmp.stores.CertificateStore;
-import org.adorys.plh.pkix.core.cmp.stores.PendingCertAnn;
-import org.adorys.plh.pkix.core.cmp.stores.PendingPollRequest;
-import org.adorys.plh.pkix.core.cmp.stores.PendingResponses;
-import org.adorys.plh.pkix.core.cmp.stores.PrivateKeyHolder;
-import org.adorys.plh.pkix.core.cmp.utils.GeneralNameHolder;
-import org.adorys.plh.pkix.core.cmp.utils.KeyIdUtils;
-import org.adorys.plh.pkix.core.cmp.utils.ResponseFactory;
-import org.adorys.plh.pkix.core.cmp.utils.UUIDUtils;
-import org.adorys.plh.pkix.core.cmp.utils.X509CertificateHolderCollection;
+import org.adorsys.plh.pkix.core.cmp.PendingRequestHolder;
+import org.adorsys.plh.pkix.core.cmp.PlhCMPSystem;
+import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementBuilder;
+import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
+import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
+import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
+import org.adorsys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
+import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
+import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
+import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
+import org.adorsys.plh.pkix.core.cmp.message.PkiMessageConformity;
+import org.adorsys.plh.pkix.core.cmp.pollrequest.PollReplyProcessor;
+import org.adorsys.plh.pkix.core.cmp.pollrequest.PollRequestBuilder;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnn;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingPollRequest;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorsys.plh.pkix.core.cmp.utils.ResponseFactory;
+import org.adorsys.plh.pkix.core.utils.GeneralNameHolder;
+import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
+import org.adorsys.plh.pkix.core.utils.KeyPairBuilder;
+import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.UUIDUtils;
+import org.adorsys.plh.pkix.core.utils.X509CertificateHolderCollection;
+import org.adorsys.plh.pkix.core.utils.store.CertificateStore;
+import org.adorsys.plh.pkix.core.utils.store.PrivateKeyHolder;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -106,8 +107,7 @@ public class CMPMessagingClient {
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 		
-		PrivateKey privateKey = privateKeyHolder.getPrivateKey(KeyIdUtils
-				.getSubjectKeyIdentifierAsOctetString(senderCertificate));
+		PrivateKey privateKey = privateKeyHolder.getPrivateKey(senderCertificate);
 		InitializationRequestHolder initializationRequestHolder = new InitializationRequestBuilder()
 				.withEndEntityName(endEntityName)
 				.withRecipientX500Name(PlhCMPSystem.getServerName())
@@ -212,8 +212,7 @@ public class CMPMessagingClient {
 		ProtectedPKIMessage protectedPKIMessage = PkiMessageConformity
 				.check(generalPKIMessage);
 
-		PrivateKey privateKey = privateKeyHolder.getPrivateKey(KeyIdUtils
-				.getSubjectKeyIdentifierAsOctetString(subjectCert));
+		PrivateKey privateKey = privateKeyHolder.getPrivateKey(subjectCert);
 
 		switch (protectedPKIMessage.getBody().getType()) {
 		case PKIBody.TYPE_POLL_REP:
@@ -277,8 +276,7 @@ public class CMPMessagingClient {
 					.check(generalPKIMessage);
 
 
-			PrivateKey privateKey = privateKeyHolder.getPrivateKey(KeyIdUtils
-					.getSubjectKeyIdentifierAsOctetString(senderCertificate));
+			PrivateKey privateKey = privateKeyHolder.getPrivateKey(senderCertificate);
 
 			switch (protectedPKIMessage.getBody().getType()) {
 			case PKIBody.TYPE_POLL_REP:
@@ -382,10 +380,10 @@ public class CMPMessagingClient {
 			throw new IllegalStateException("No certificate with signer");
 				
 		X500Name serverX500Name = PlhCMPSystem.getServerName();
-        PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(KeyIdUtils.getSubjectKeyIdentifierAsOctetString(senderCertificate));
+        PrivateKey subjectPrivateKey = privateKeyHolder.getPrivateKey(senderCertificate);
 		ContentSigner subjectSigner;
 		try {
-			subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(PlhCMPSystem.getProvider()).build(subjectPrivateKey );
+			subjectSigner = new JcaContentSignerBuilder("MD5WithRSAEncryption").setProvider(ProviderUtils.bcProvider).build(subjectPrivateKey );
 		} catch (OperatorCreationException e) {
 			throw new IllegalStateException(e);
 		}

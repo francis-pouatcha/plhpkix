@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Plh Client Services
+Bundle-SymbolicName: plh.pkix.client.services
+Bundle-Version: 0.0.1.qualifier
+Bundle-Vendor: Adorsys
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Export-Package: org.adorsys.plh.pkix.client.services,
+ org.adorsys.plh.pkix.client.services.converter,
+ org.adorsys.plh.pkix.client.services.datatypes,
+ org.adorsys.plh.pkix.client.services.repo
+Require-Bundle: plh.pkix.core.utils;bundle-version="0.0.1"

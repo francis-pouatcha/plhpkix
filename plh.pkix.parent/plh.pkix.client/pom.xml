@@ -8,6 +8,10 @@
   <description>Plooh Client Aggregator</description>
   
   <modules>
+  	<module>plh.pkix.client.services</module>
+  	<module>plh.pkix.client.services.test</module>
+  	<module>plh.pkix.client.messaging.db</module>
+  	<module>plh.pkix.client.messaging.mail</module>
   	<module>plh.pkix.client.cmp</module>
   	<module>plh.pkix.client.sedent</module>
   </modules>

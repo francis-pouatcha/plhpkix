@@ -34,8 +34,7 @@
         <version.weld_api>1.1.Final</version.weld_api>
         <version.bouncycastle>1.47</version.bouncycastle>
         <version.shrinkwrap_resolver>2.0.0-alpha-3</version.shrinkwrap_resolver>
-
-        <version.commons.lang>2.6</version.commons.lang>
+        <version.commons-lang3>3.1</version.commons-lang3>
         <version.commons.io>2.1</version.commons.io>
         <version.httpcomponents>4.2.1</version.httpcomponents>
         <version.httpcomponents.2>4.1.4</version.httpcomponents.2>
@@ -104,9 +103,9 @@
 				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>commons-lang</groupId>
-				<artifactId>commons-lang</artifactId>
-				<version>${version.commons.lang}</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>${version.commons-lang3}</version>
 				<scope>provided</scope>
 			</dependency>
         

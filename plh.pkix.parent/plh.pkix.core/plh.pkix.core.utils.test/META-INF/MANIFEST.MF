@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Plooh Core Utils Test
+Bundle-SymbolicName: plh.pkix.core.utils.test
+Bundle-Version: 0.0.1.qualifier
+Bundle-Vendor: Adorsys
+Fragment-Host: plh.pkix.core.utils;bundle-version="0.0.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.junit4;bundle-version="4.8.1"

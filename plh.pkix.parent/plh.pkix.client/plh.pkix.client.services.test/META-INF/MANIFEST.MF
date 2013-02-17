@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Plooh Client Services Test
+Bundle-SymbolicName: plh.pkix.client.services.test
+Bundle-Version: 0.0.1.qualifier
+Bundle-Vendor: Adorsys
+Fragment-Host: plh.pkix.client.services;bundle-version="0.0.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.junit4;bundle-version="4.8.1"

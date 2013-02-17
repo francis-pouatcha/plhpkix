@@ -7,9 +7,9 @@ import javax.inject.Inject;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
-import org.adorsys.plh.pkix.client.sedent.identity.AccountDir;
 import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccount;
-import org.adorsys.plh.pkix.client.sedent.identity.DeviceDir;
+import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccountDir;
+import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccountRootDir;
 import org.adorsys.plh.pkix.client.sedent.identity.LocalAccountExistsException;
 import org.adorsys.plh.pkix.workbench.account.utils.AccountMessages;
 import org.adorsys.plh.pkix.workbench.account.utils.ValidtionUtils;
@@ -23,12 +23,10 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
@@ -74,7 +72,7 @@ public class RegisterAccountView {
 	
 	private void initDialog(){
 		IEclipseContext registerAccountDialogContext = registerAccountDialog.getContext();
-		final DeviceDir deviceDir = registerAccountDialogContext.get(DeviceDir.class);
+		final DeviceAccountRootDir deviceDir = registerAccountDialogContext.get(DeviceAccountRootDir.class);
 
 		final Shell shell = parent.getShell();
 		ModifyListener enableRegisterModifyListener = new ModifyListener() {
@@ -205,19 +203,19 @@ public class RegisterAccountView {
 						if(SWT.YES==response){
 							String terminalMessageDescription = null;
 							if(enableProtectionButton.getSelection()){
-								terminalMessageDescription = protectionAnswer.getText();
+								terminalMessageDescription = protectionQuestion.getText();
 							}
 							try {
-								AccountDir createdAccount = deviceDir.createAccount(emailAddress, terminalMessageDescription);
+								DeviceAccountDir createdAccount = deviceDir.createAccount(emailAddress, terminalMessageDescription);
 								DeviceAccount deviceAccount = null;
 								if(StringUtils.isBlank(terminalMessageDescription)){
-									deviceAccount = createdAccount.login(createdAccount.getTerminalSecretImplicite().toCharArray());
+									deviceAccount = createdAccount.login(null);
 								} else {
 									deviceAccount = createdAccount.login(protectionAnswer.getText().toCharArray());
 								}
 								registerAccountDialog.setVisible(false);
 								IEventBroker eventBroker = context.get(IEventBroker.class);
-								eventBroker.send(DeviceAccount.getTopicName(), deviceAccount);
+								eventBroker.send(DeviceAccount.TOPIC_NAME, deviceAccount);
 							} catch (LocalAccountExistsException e1) {
 								MessageBox box1 = new MessageBox(shell, SWT.ICON_INFORMATION
 										| SWT.OK | SWT.PRIMARY_MODAL);
@@ -234,7 +232,7 @@ public class RegisterAccountView {
 		});	
 		
 		// TODO move to a proper method to customize display policy
-		List<AccountDir> loadedAccounts = deviceDir.loadAccounts();
+		List<DeviceAccountDir> loadedAccounts = deviceDir.loadAccounts();
 		if(loadedAccounts.isEmpty()){
 			registerAccountDialog.setVisible(true);
 			modelService.bringToTop(registerAccountDialog);
@@ -259,10 +257,10 @@ public class RegisterAccountView {
 			return;			
 		}
 		
-		boolean disable = ValidtionUtils.isTextNotEmpty(protectionQuestion) &&
+		boolean enabled = ValidtionUtils.isTextNotEmpty(protectionQuestion) &&
 				ValidtionUtils.isTextNotEmpty(protectionAnswer) &&
 				ValidtionUtils.isTextNotEmpty(repeatProtectionAnswer);
-		registerButton.setEnabled(!disable);
+		registerButton.setEnabled(enabled);
 	}
 	
 	private void resetFields(Composite parent){

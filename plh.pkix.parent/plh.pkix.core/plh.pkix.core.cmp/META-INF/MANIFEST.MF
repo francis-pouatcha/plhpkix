@@ -1,0 +1,24 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Plooh PKIX Core CMP
+Bundle-SymbolicName: plh.pkix.core.cmp
+Bundle-Version: 0.0.1.qualifier
+Bundle-Activator: org.adorsys.plh.pkix.core.cmp.Activator
+Bundle-Vendor: Adorsys
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6,
+ JavaSE-1.7
+Import-Package: org.osgi.framework;version="1.3.0"
+Require-Bundle: org.apache.httpcomponents.httpcore;bundle-version="4.1.4",
+ org.apache.commons.io;bundle-version="2.0.1",
+ plh.pkix.core.utils;bundle-version="0.0.1",
+ org.apache.commons.lang3;bundle-version="3.1.0",
+ plh.pkix.core.smime;bundle-version="0.0.1"
+Export-Package: org.adorsys.plh.pkix.core.cmp,
+ org.adorsys.plh.pkix.core.cmp.certann,
+ org.adorsys.plh.pkix.core.cmp.certrequest,
+ org.adorsys.plh.pkix.core.cmp.fetch,
+ org.adorsys.plh.pkix.core.cmp.initrequest,
+ org.adorsys.plh.pkix.core.cmp.message,
+ org.adorsys.plh.pkix.core.cmp.pollrequest,
+ org.adorsys.plh.pkix.core.cmp.stores,
+ org.adorsys.plh.pkix.core.cmp.utils

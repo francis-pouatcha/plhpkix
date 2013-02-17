@@ -62,7 +62,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 
 public class ResourceNavigator {
-	private Map<IContainer, IObservableSet> observableSets = new HashMap<IContainer, IObservableSet>();
+	
+	  private Map<IContainer, IObservableSet> observableSets = new HashMap<IContainer, IObservableSet>();
 	
 	@Inject
 	private ECommandService commandService;

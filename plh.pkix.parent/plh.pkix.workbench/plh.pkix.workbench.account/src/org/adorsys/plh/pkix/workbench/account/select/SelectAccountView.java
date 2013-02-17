@@ -7,9 +7,9 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import org.adorsys.plh.pkix.client.sedent.identity.AccountDir;
+import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccountDir;
 import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccount;
-import org.adorsys.plh.pkix.client.sedent.identity.DeviceDir;
+import org.adorsys.plh.pkix.client.sedent.identity.DeviceAccountRootDir;
 import org.adorsys.plh.pkix.workbench.account.utils.AccountMessages;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.contexts.IEclipseContext;
@@ -62,7 +62,6 @@ public class SelectAccountView {
 		this.selectAccountDialog = dialog;
 		this.modelService=m;
 		this.context = c;
-//		this.eventBroker=eb;
 		initDialog();
 	}
 	
@@ -70,9 +69,9 @@ public class SelectAccountView {
 	private void initDialog(){
 		
 		IEclipseContext selectAccountDialogContext = selectAccountDialog.getContext();
-		final DeviceDir deviceDir = selectAccountDialogContext.get(DeviceDir.class);
+		final DeviceAccountRootDir deviceDir = selectAccountDialogContext.get(DeviceAccountRootDir.class);
 		
-		List<AccountDir> loadedAccounts = deviceDir.loadAccounts();
+		List<DeviceAccountDir> loadedAccounts = deviceDir.loadAccounts();
 		if(loadedAccounts.isEmpty()) return;
 		
 		if(loadedAccounts.size()==1){// handle single account
@@ -81,7 +80,7 @@ public class SelectAccountView {
 			initMultipleDialog(loadedAccounts);			
 		}
 	}
-	private void initSingleDialog(AccountDir account) {
+	private void initSingleDialog(DeviceAccountDir deviceAccountDir) {
 		GridLayout layout = new GridLayout();
 		layout.numColumns = 2;
 		parent.setLayout(layout);
@@ -91,15 +90,15 @@ public class SelectAccountView {
 		Label emailLabel = new Label(parent, SWT.LEFT);
 		emailLabel.setText(AccountMessages.Select_dialog_email);
 		singleUserEmail = new Text(parent, SWT.BORDER| SWT.READ_ONLY);
-		singleUserEmail.setText(account.getAccountName());
+		singleUserEmail.setText(deviceAccountDir.getDeviceAccountName());
 		GridData emailGridData = new GridData(GridData.FILL_HORIZONTAL);
 		emailGridData.widthHint = GRIDDATA_WIDTHHINT;
 		emailGridData.horizontalAlignment = GridData.FILL;
 		singleUserEmail.setLayoutData(emailGridData);
-		handleSelection(account);
+		handleSelection(deviceAccountDir);
 	}
 	
-	private void initMultipleDialog(List<AccountDir> loadedAccounts){
+	private void initMultipleDialog(List<DeviceAccountDir> loadedAccounts){
 		
 		final Shell shell = parent.getShell();
 		GridLayout layout = new GridLayout();
@@ -114,10 +113,10 @@ public class SelectAccountView {
 		// The email select box
 		userEmails = new Combo(parent, SWT.BORDER|SWT.DROP_DOWN|SWT.READ_ONLY);
 		userEmails.add(AccountMessages.Select_dialog_email);
-		final Map<String, AccountDir> map = new HashMap<String, AccountDir>();
-		for (AccountDir accountDir : loadedAccounts) {
-			userEmails.add(accountDir.getAccountName());
-			map.put(accountDir.getAccountName(), accountDir);
+		final Map<String, DeviceAccountDir> map = new HashMap<String, DeviceAccountDir>();
+		for (DeviceAccountDir accountDir : loadedAccounts) {
+			userEmails.add(accountDir.getDeviceAccountName());
+			map.put(accountDir.getDeviceAccountName(), accountDir);
 		}
 		GridData emailGridData = new GridData(GridData.FILL_HORIZONTAL);
 //		emailGridData.widthHint = GRIDDATA_WIDTHHINT;
@@ -125,14 +124,14 @@ public class SelectAccountView {
 		SelectionListener listener = new SelectionListener() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				AccountDir accountDir = map.get(userEmails.getText());
+				DeviceAccountDir accountDir = map.get(userEmails.getText());
 				if(accountDir!=null)
 					handleSelection(accountDir);
 			}
 			
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
-				AccountDir accountDir = map.get(userEmails.getText());
+				DeviceAccountDir accountDir = map.get(userEmails.getText());
 				if(accountDir!=null)
 					handleSelection(accountDir);
 			}
@@ -142,10 +141,10 @@ public class SelectAccountView {
 	}
 
 
-	private void handleSelection(final AccountDir account) {
-		final String terminalSecretImplicite = account.getTerminalSecretImplicite();
-		if(StringUtils.isBlank(terminalSecretImplicite)){
-			String terminalMessageDescription = account.getTerminalMessageDescription();
+	private void handleSelection(final DeviceAccountDir deviceAccountDir) {
+//		final String terminalSecretImplicite = deviceAccountDir.getTerminalSecretImplicite();
+		if(deviceAccountDir.requiresPassword()){
+			String terminalMessageDescription = deviceAccountDir.getDeviceAccountMessageDescription();
 			
 			// Protection Question label
 			Label protectionQuestionLabel = new Label(parent, SWT.LEFT);
@@ -165,6 +164,7 @@ public class SelectAccountView {
 			GridData protectionAnswerGridData = new GridData(GridData.FILL_HORIZONTAL);
 			protectionAnswerGridData.widthHint = GRIDDATA_WIDTHHINT;
 			protectionAnswer.setLayoutData(protectionAnswerGridData);
+			protectionAnswer.setFocus();
 		}		
 		
 		loginButton = new Button(parent, SWT.PUSH);
@@ -186,10 +186,10 @@ public class SelectAccountView {
 				String terminalSecret = null;
 				if(protectionAnswer!=null){
 					terminalSecret = protectionAnswer.getText();
+					login(deviceAccountDir, terminalSecret.toCharArray());
 				} else {
-					terminalSecret = terminalSecretImplicite;
+					login(deviceAccountDir, null);// try implicite login
 				}
-				login(account, terminalSecret.toCharArray());
 			}
 		});
 
@@ -201,13 +201,13 @@ public class SelectAccountView {
 		loginButton.setEnabled(protectionAnswer==null|| StringUtils.isNotBlank(protectionAnswer.getText()));
 	}
 	
-	private void login(AccountDir accountDir, char[] protectionAnswer){
+	private void login(DeviceAccountDir accountDir, char[] protectionAnswer){
 		DeviceAccount deviceAccount = accountDir.login(protectionAnswer);
 		context.set(DeviceAccount.class, deviceAccount);
 		// sending this with null data will be equivalent to a logout.
 		selectAccountDialog.setVisible(false);
 		IEventBroker eventBroker = context.get(IEventBroker.class);
-		eventBroker.send(DeviceAccount.getTopicName(), deviceAccount);
+		eventBroker.send(DeviceAccount.TOPIC_NAME, deviceAccount);
 	}
 
 
