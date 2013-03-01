@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 import org.adorsys.plh.pkix.core.smime.engines.CMSDecryptor;
 import org.adorsys.plh.pkix.core.smime.engines.CMSEncryptor;
-import org.adorsys.plh.pkix.core.smime.validator.CMSPart;
+import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;

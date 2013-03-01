@@ -36,10 +36,10 @@ public class BuilderChecker {
 		return this;
 	}
 
-	public void checkEmpty(Certificate[]... nonEmptyParams) {
+	public void checkEmpty(Object[]... nonEmptyParams) {
 		if(nonEmptyParams!=null)
-			for (Certificate[] certificates : nonEmptyParams) {
-				if(certificates.length==0)throw new IllegalArgumentException(builderClass.getName() + " Check builder documentation. None of the params passed to this builder checker might be empty");
+			for (Object[] objects : nonEmptyParams) {
+				if(objects.length==0)throw new IllegalArgumentException(builderClass.getName() + " Check builder documentation. None of the params passed to this builder checker might be empty");
 			}
 	}
 }

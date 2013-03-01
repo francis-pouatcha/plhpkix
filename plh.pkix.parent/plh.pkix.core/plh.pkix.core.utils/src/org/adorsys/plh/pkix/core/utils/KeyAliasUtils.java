@@ -1,15 +1,19 @@
 package org.adorsys.plh.pkix.core.utils;
 
 import java.math.BigInteger;
-import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.mail.internet.AddressException;
 
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
+import org.adorsys.plh.pkix.core.utils.store.PlhPkixCoreMessages;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.i18n.ErrorBundle;
 
 /**
  * Computes the key alias for a key entry.
@@ -19,7 +23,11 @@ import org.bouncycastle.cert.X509CertificateHolder;
  */
 public class KeyAliasUtils {
 	
-	public static final String KeyIdElementSeparator = "_";
+	private static final String KeyIdElementSeparator = "_";
+	private static final int SUBJECT_KEY_ID_POSITION = 0;
+	private static final int ISSUER_KEY_ID_POSITION = 1;
+	private static final int SERIAL_NUMBER_POSITION = 2;
+	private static final int EMAIL_ADDRESS_POSITION = 3;
 	
 	/**
 	 * Compute the alias needed to store a key and/or certificate including the 
@@ -48,7 +56,7 @@ public class KeyAliasUtils {
 	 * @return case insensitive concatenation of key identification informations for a key entry.
 	 * @throws AddressException 
 	 */
-	public static String computeKeyAlias(X509CertificateHolder certificateHolder)  throws CertificateException{
+	public static String computeKeyAlias(X509CertificateHolder certificateHolder)  {
 		
 		// the subjectKeyId
 		String subjectKeyIdHex = KeyIdUtils.getSubjectKeyIdentifierAsString(certificateHolder);
@@ -60,6 +68,14 @@ public class KeyAliasUtils {
 		
 		// get the Strict email
 		X500Name subjectName = certificateHolder.getSubject();
+		String emailAddressStrict = extractCNAsEmailWithFallback(subjectName);
+
+		String result = subjectKeyIdHex + KeyIdElementSeparator + authorityKeyIdHex + KeyIdElementSeparator + makeSeriaNumberFrangment(serialNumber) + KeyIdElementSeparator + emailAddressStrict;
+		
+		return result.toLowerCase();
+	}
+	
+	private static String extractCNAsEmailWithFallback(X500Name subjectName){
 		String emailAddressStrict = null;
 		try {
 			emailAddressStrict = X500NameHelper.extractEmailAddress(subjectName);
@@ -67,13 +83,13 @@ public class KeyAliasUtils {
 			// Do nothing. Simply use common name of dn
 			emailAddressStrict = X500NameHelper.getCN1(subjectName);
 			if(StringUtils.isBlank(emailAddressStrict)){
-				throw new CertificateException("Certificate carries neither a valid email nor a common name");
+	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+	            		PlhPkixCoreMessages.KeyAliasUtils_cn_addressException,
+	                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+	            throw new PlhUncheckedException(msg, e);
 			}
 		}
-		
-		String result = subjectKeyIdHex + KeyIdElementSeparator + authorityKeyIdHex + KeyIdElementSeparator + makeSeriaNumberFrangment(serialNumber) + KeyIdElementSeparator + emailAddressStrict;
-		
-		return result.toLowerCase();
+		return emailAddressStrict;
 	}
 	
 	public static String makeKeyIdHexFragment(byte[] keyIdentifier){
@@ -84,19 +100,44 @@ public class KeyAliasUtils {
 		return serialNumber.toString(16);
 	}
 	
-	public static final String selectBySubjectKeyIdentifier(List<String> aliases, byte[] subjectKeyIdentifier){
+	public static final List<String> selectBySubjectKeyIdentifier(Enumeration<String> aliases, byte[] subjectKeyIdentifier){
 		String subjectKeyIdHexFragment = makeKeyIdHexFragment(subjectKeyIdentifier);
-		for (String alias : aliases) {
-			if(StringUtils.startsWithIgnoreCase(alias, subjectKeyIdHexFragment)) return alias;
-		}
-		return null;
+		return select(aliases, subjectKeyIdHexFragment, SUBJECT_KEY_ID_POSITION);
 	}
 
-	public static final String selectBySerialNumber(List<String> aliases, BigInteger serialNumber){
+	public static final List<String> selectBySerialNumber(Enumeration<String> aliases, BigInteger serialNumber){
 		String seriaNumberFrangment = makeSeriaNumberFrangment(serialNumber);
-		for (String alias : aliases) {
-			if(StringUtils.containsIgnoreCase(alias, seriaNumberFrangment)) return alias;
-		}
-		return null;
+		return select(aliases, seriaNumberFrangment, SERIAL_NUMBER_POSITION);
 	}
+	
+	public static final List<String> selectByIssuerKeyIdentifier(Enumeration<String> aliases, 
+			X509CertificateHolder certificateHolder)
+	{
+		String authorityKeyIdHex = KeyIdUtils.getAuthorityKeyIdentifierAsString(certificateHolder);
+		return select(aliases, authorityKeyIdHex, ISSUER_KEY_ID_POSITION);
+	}
+
+	public static final List<String> selectBySubjectName(Enumeration<String> aliases, 
+			X500Name subjectName)
+	{
+		String subjectEmail = extractCNAsEmailWithFallback(subjectName);
+		return select(aliases, subjectEmail, EMAIL_ADDRESS_POSITION);
+	}
+	
+
+	public static final List<String> select(Enumeration<String> aliases, 
+			String fragment, int pos)
+	{
+		List<String> result = new ArrayList<String>();
+		while (aliases.hasMoreElements()) {
+			String alias = (String) aliases.nextElement();
+			if(StringUtils.containsIgnoreCase(alias, fragment)) {
+				String[] split = alias.split(KeyIdElementSeparator);
+				if(split.length<3) continue;
+				if(fragment.equalsIgnoreCase(split[pos])) result.add(alias);
+			}
+		}
+		return result;
+	}
+	
 }

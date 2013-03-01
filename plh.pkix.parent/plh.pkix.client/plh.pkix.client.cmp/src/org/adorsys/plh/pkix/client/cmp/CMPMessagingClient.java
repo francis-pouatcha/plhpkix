@@ -8,23 +8,23 @@ import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 
-import org.adorsys.plh.pkix.core.cmp.PendingRequestHolder;
 import org.adorsys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementBuilder;
 import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
-import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationReplyProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationReplyValidationProcessor;
 import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
-import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestValidationProcessor;
 import org.adorsys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
-import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationRequestBuilder;
 import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
-import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationResponseProcessor;
+import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationResponseValidationActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.message.PkiMessageConformity;
-import org.adorsys.plh.pkix.core.cmp.pollrequest.PollReplyProcessor;
+import org.adorsys.plh.pkix.core.cmp.pollrequest.PollReplyValidationActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.pollrequest.PollRequestBuilder;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnn;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingPollRequest;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorsys.plh.pkix.core.cmp.stores.InitializationRequestBuilder;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncements2;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingRequests;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingRequest;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingResponses2;
 import org.adorsys.plh.pkix.core.cmp.utils.ResponseFactory;
 import org.adorsys.plh.pkix.core.utils.GeneralNameHolder;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
@@ -70,15 +70,15 @@ public class CMPMessagingClient {
 	private final String addressPrefix;
 	private final PrivateKeyHolder privateKeyHolder;
 	private final CertificateStore certificateStore;
-	private final PendingPollRequest pendingPollRequest;
-	private final PendingCertAnn pendingCertAnns;
-	private final PendingResponses pendingResponses;
+	private final PendingRequests pendingPollRequest;
+	private final PendingCertAnnouncements2 pendingCertAnns;
+	private final PendingResponses2 pendingResponses;
 	
 	public CMPMessagingClient(X500Name endEntityName, String addressPrefix,
 			PrivateKeyHolder privateKeyHolder,
 			CertificateStore certificateStore,
-			PendingPollRequest pendingPollRequest,
-			PendingCertAnn pendingCertAnns, PendingResponses pendingResponses) {
+			PendingRequests pendingPollRequest,
+			PendingCertAnnouncements2 pendingCertAnns, PendingResponses2 pendingResponses) {
 		super();
 		this.endEntityName = endEntityName;
 		this.addressPrefix = addressPrefix;
@@ -94,7 +94,7 @@ public class CMPMessagingClient {
 			.withEndEntityName(endEntityName)
 			.withPrivateKeyHolder(privateKeyHolder)
 			.withCertificateStore(certificateStore)
-			.build0();
+			.build();
 	}
 
 	public HttpResponse initialize(X500Name certSigner)
@@ -164,7 +164,7 @@ public class CMPMessagingClient {
 
 		CertTemplate certTemplate = initializationRequestHolder
 				.getCertTemplate();
-		new InitializationResponseProcessor().setCertificateStore(
+		new InitializationResponseValidationActionProcessor().setCertificateStore(
 				certificateStore).process(certTemplate, protectedPKIMessage);
 
 		X509CertificateHolder certificate = certificateStore.getCertificate(
@@ -185,12 +185,12 @@ public class CMPMessagingClient {
 		X509CertificateHolder subjectCert = certificateStore
 				.getCertificate(endEntityName);
 
-		PendingRequestHolder certificationRequestHolder = new CertificationRequestBuilder()
+		PendingRequest certificationRequestHolder = new CertificationRequestBuilder()
 				.withCertAuthorityName(certAuthorityName)
 				.withSubjectName(endEntityName)
 				.withSubjectCert(subjectCert)
 				.withPrivateKeyHolder(privateKeyHolder)
-				.build0();
+				.build();
 
 		PKIMessage pkiMessage = certificationRequestHolder.getPkiMessage();
 
@@ -216,14 +216,14 @@ public class CMPMessagingClient {
 
 		switch (protectedPKIMessage.getBody().getType()) {
 		case PKIBody.TYPE_POLL_REP:
-			return new PollReplyProcessor()
+			return new PollReplyValidationActionProcessor()
 					.withPendingRequestHolder(certificationRequestHolder)
 					.withEndEntityName(endEntityName)
 					.withPendingPollRequest(pendingPollRequest)
 					.withCertificateStore(certificateStore)
 					.process0(generalPKIMessage);
 		case PKIBody.TYPE_CERT_REP:
-			return new CertificationReplyProcessor()
+			return new CertificationReplyValidationProcessor()
 					.withEndEntityName(endEntityName)
 					.withSubjectPrivateKey(privateKey)
 					.withCertificateStore(certificateStore)
@@ -245,10 +245,10 @@ public class CMPMessagingClient {
 		if(senderCertificate==null)
 			throw new IllegalStateException("No certificate with signer");
 		
-		List<PendingRequestHolder> pollRequests = pendingPollRequest
+		List<PendingRequest> pollRequests = pendingPollRequest
 				.loadPollRequests();
 
-		for (PendingRequestHolder pendingRequestHolder : pollRequests) {
+		for (PendingRequest pendingRequestHolder : pollRequests) {
 			new PollRequestBuilder()
 					.withPrivateKeyHolder(privateKeyHolder)
 					.withSubjectName(endEntityName)
@@ -280,14 +280,14 @@ public class CMPMessagingClient {
 
 			switch (protectedPKIMessage.getBody().getType()) {
 			case PKIBody.TYPE_POLL_REP:
-				new PollReplyProcessor()
+				new PollReplyValidationActionProcessor()
 						.withPendingRequestHolder(pendingRequestHolder)
 						.withEndEntityName(endEntityName)
 						.withPendingPollRequest(pendingPollRequest)
 						.process0(generalPKIMessage);
 				break;
 			case PKIBody.TYPE_CERT_REP:
-				new CertificationReplyProcessor()
+				new CertificationReplyValidationProcessor()
 						.withEndEntityName(endEntityName)
 						.withSubjectPrivateKey(privateKey)
 						.withCertificateStore(certificateStore)
@@ -349,7 +349,7 @@ public class CMPMessagingClient {
 				.withSubjectName(endEntityName)
 				.withSubjectCertificate(certificateHolder)
 				.withPrivateKeyHolder(privateKeyHolder)
-				.build0();
+				.build();
 
 			PKIMessage pkiMessage = certificateAnnouncementHolder.getPkiMessage();
 			
@@ -450,7 +450,7 @@ public class CMPMessagingClient {
 
 		switch (protectedPKIMessage.getBody().getType()) {
 			case PKIBody.TYPE_CERT_REQ:
-				new CertificationRequestProcessor()
+				new CertificationRequestValidationProcessor()
 					.setIssuerKeyId(subjectKeyId)
 					.setIssuerName(endEntityName)
 					.setIssuerPrivateKey(subjectPrivateKey)

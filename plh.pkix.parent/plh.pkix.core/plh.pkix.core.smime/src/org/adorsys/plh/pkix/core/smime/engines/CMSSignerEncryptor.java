@@ -5,7 +5,6 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-import org.adorsys.plh.pkix.core.smime.validator.CMSPart;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 
 public class CMSSignerEncryptor {

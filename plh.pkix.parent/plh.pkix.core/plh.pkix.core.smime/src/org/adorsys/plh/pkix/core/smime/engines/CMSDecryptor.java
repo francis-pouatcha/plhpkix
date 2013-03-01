@@ -20,7 +20,6 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.adorsys.plh.pkix.core.smime.utils.KeyAliasSelector;
-import org.adorsys.plh.pkix.core.smime.validator.CMSPart;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.apache.commons.io.IOUtils;

@@ -6,8 +6,8 @@ import java.security.cert.X509CRL;
 import javax.mail.internet.MimeBodyPart;
 import javax.security.auth.callback.CallbackHandler;
 
-import org.adorsys.plh.pkix.core.smime.validator.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
+import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 
 public class SMIMEBodyPartDecryptorVerifier {
 

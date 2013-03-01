@@ -24,7 +24,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 public class CertificateAnnouncementBuilder {
 
 	BuilderChecker checker = new BuilderChecker(CertificateAnnouncementBuilder.class);
-	public CertificateAnnouncementHolder build(PrivateKeyEntry privateKeyEntry) {
+	public PKIMessage build(PrivateKeyEntry privateKeyEntry) {
 		checker.checkDirty()
 			.checkNull(privateKeyEntry);
 		
@@ -60,7 +60,6 @@ public class CertificateAnnouncementBuilder {
 			throw new IllegalStateException(e);
 		}
 
-		PKIMessage pkiMessage = mainMessage.toASN1Structure();
-		return new CertificateAnnouncementHolder(pkiMessage);
+		return mainMessage.toASN1Structure();
 	}
 }

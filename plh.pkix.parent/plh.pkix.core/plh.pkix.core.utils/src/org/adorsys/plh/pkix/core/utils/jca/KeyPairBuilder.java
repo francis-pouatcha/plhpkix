@@ -82,11 +82,11 @@ public class KeyPairBuilder {
 		KeyPair keyPair = kGen.generateKeyPair();
 
 		X509CertificateHolder cert = new X509CertificateBuilder()
-			.setCa(true)
-			.setNotBefore(DateUtils.addDays(new Date(), -1))
-			.setNotAfter(DateUtils.addDays(new Date(), 300))
-			.setSubjectDN(x500Name)
-			.setSubjectPublicKey(keyPair.getPublic())
+			.withCa(true)
+			.withNotBefore(DateUtils.addDays(new Date(), -1))
+			.withNotAfter(DateUtils.addDays(new Date(), 300))
+			.withSubjectDN(x500Name)
+			.withSubjectPublicKey(keyPair.getPublic())
 			.build(keyPair.getPrivate());
 
 		return new KeyPairAndCertificateHolder(keyPair, cert, null);

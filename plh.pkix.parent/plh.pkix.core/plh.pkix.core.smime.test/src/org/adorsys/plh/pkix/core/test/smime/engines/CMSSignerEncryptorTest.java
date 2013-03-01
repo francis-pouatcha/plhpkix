@@ -9,13 +9,13 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 import org.adorsys.plh.pkix.core.smime.engines.CMSDecryptorVerifier;
+import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
 import org.adorsys.plh.pkix.core.smime.engines.CMSSignerEncryptor;
-import org.adorsys.plh.pkix.core.smime.validator.CMSPart;
-import org.adorsys.plh.pkix.core.smime.validator.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.jca.PasswordCallbackHandler;
+import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -62,7 +62,7 @@ public class CMSSignerEncryptorTest {
 			.signEncrypt(privateKeyEntry.getPrivateKey());
 		inputPart.dispose();
 
-		File signedEncryptedFile = new File("target/rfc4210.pdf.testSingEncryptDecryptVerify.signed.encrypted");
+		File signedEncryptedFile = new File("target/rfc4210.pdf.CMSSignerEncryptorTest.signed.encrypted");
 		signedEncryptedPartOut.writeTo(signedEncryptedFile);
 		signedEncryptedPartOut.dispose();
 		
@@ -81,7 +81,7 @@ public class CMSSignerEncryptorTest {
 		
 		CMSPart decryptedVerifiedPart = validator.getContent();
 		
-		File decryptedVerifiedFile = new File("target/rfc4210.pdf.testSingEncryptDecryptVerify.decrypted.verified");
+		File decryptedVerifiedFile = new File("target/rfc4210.pdf.CMSSignerEncryptorTest.decrypted.verified");
 		decryptedVerifiedPart.writeTo(decryptedVerifiedFile);
 		decryptedVerifiedPart.dispose();
 

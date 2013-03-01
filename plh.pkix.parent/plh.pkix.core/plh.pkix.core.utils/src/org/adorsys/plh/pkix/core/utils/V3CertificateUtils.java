@@ -1,161 +1,34 @@
 package org.adorsys.plh.pkix.core.utils;
 
-import java.math.BigInteger;
+import java.io.IOException;
 import java.security.InvalidKeyException;
-import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.UUID;
 
-import org.bouncycastle.asn1.x500.X500Name;
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
+import org.adorsys.plh.pkix.core.utils.store.PlhPkixCoreMessages;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.X509Extension;
-import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.i18n.ErrorBundle;
 
 public class V3CertificateUtils {
-
-	public static X509CertificateHolder makeSelfV3Certificate0(boolean isCa,
-			KeyPair subjectKeyPair, X500Name subject, Date notBefore,
-			Date notAfter, Provider provider)  {
-		
-		try {
-			PublicKey subPub = subjectKeyPair.getPublic();
-			PrivateKey issPriv = subjectKeyPair.getPrivate();
-			PublicKey issPub = subjectKeyPair.getPublic();
-
-			X500Name issuer = subject;
-			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
-
-			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
-					issuer, serial, notBefore, notAfter, subject, subPub);
-
-			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
-					extUtils.createSubjectKeyIdentifier(subPub));
-
-			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
-					extUtils.createAuthorityKeyIdentifier(issPub));
-
-			v3CertGen.addExtension(X509Extension.basicConstraints, true,
-					new BasicConstraints(0));
-
-			ContentSigner signer;
-			try {
-				signer = new JcaContentSignerBuilder("SHA1WithRSA")
-						.setProvider(provider).build(issPriv);
-			} catch (OperatorCreationException e) {
-				throw new IllegalStateException(e);
-			}
-			return v3CertGen.build(signer);
-		} catch (CertIOException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
-	}
-
-	public static X509CertificateHolder makeV3Certificate0(
-			X509CertificateHolder subjectCertificate,
-			PrivateKey issuerPrivatekey,
-			X509CertificateHolder issuerCertificate, Date notBefore,
-			Date notAfter, Provider provider) {
-		try {
-			PublicKey subPub;
-			try {
-				subPub = PublicKeyUtils.getPublicKey(subjectCertificate,
-						provider);
-			} catch (Exception e) {
-				throw new IllegalStateException(e);
-			}
-
-			X500Name subjectDN = subjectCertificate.getSubject();
-			X500Name issuerDN = issuerCertificate.getSubject();
-			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
-			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
-					issuerDN, serial, notBefore, notAfter, subjectDN, subPub);
-
-			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
-					extUtils.createSubjectKeyIdentifier(subPub));
-
-			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
-					extUtils.createAuthorityKeyIdentifier(issuerCertificate));
-
-			v3CertGen.addExtension(X509Extension.basicConstraints, true,
-					new BasicConstraints(false));
-
-			ContentSigner signer;
-			try {
-				signer = new JcaContentSignerBuilder("SHA1WithRSA")
-						.setProvider(provider).build(issuerPrivatekey);
-			} catch (OperatorCreationException e) {
-				throw new IllegalStateException(e);
-			}
-
-			return v3CertGen.build(signer);
-		} catch (CertIOException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
-	}
-
-	public static X509CertificateHolder makeV3Certificate0(
-			PublicKey subjectPublicKey, X500Name subjectDN,
-			PrivateKey issuerPrivatekey,
-			X509CertificateHolder issuerCertificate, Date notBefore,
-			Date notAfter, Provider provider) {
-
-		try {
-			X500Name issuerDN = issuerCertificate.getSubject();
-			BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
-			X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
-					issuerDN, serial, notBefore, notAfter, subjectDN,
-					subjectPublicKey);
-
-			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier, false,
-					extUtils.createSubjectKeyIdentifier(subjectPublicKey));
-
-			v3CertGen.addExtension(X509Extension.authorityKeyIdentifier, false,
-					extUtils.createAuthorityKeyIdentifier(issuerCertificate));
-
-			v3CertGen.addExtension(X509Extension.basicConstraints, true,
-					new BasicConstraints(false));
-
-			ContentSigner signer;
-			try {
-				signer = new JcaContentSignerBuilder("SHA1WithRSA")
-						.setProvider(provider).build(issuerPrivatekey);
-			} catch (OperatorCreationException e) {
-				throw new IllegalStateException(e);
-			}
-
-			return v3CertGen.build(signer);
-		} catch (CertIOException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
-	}
 
 	public static X509Certificate getCertificate(X509CertificateHolder holder,
 			Provider provider) {
@@ -163,7 +36,26 @@ public class V3CertificateUtils {
 			return new JcaX509CertificateConverter().setProvider(provider)
 					.getCertificate(holder);
 		} catch (CertificateException e) {
-			throw new IllegalStateException(e);
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_invalidCertificate,
+                    new Object[] { holder.getSubject(), holder.getIssuer() , holder.getSerialNumber()});
+            throw new PlhUncheckedException(msg);
+		}
+	}
+	
+	public static X509CertificateHolder getX509CertificateHolder(Certificate certificate){
+		try {
+			return new X509CertificateHolder(certificate.getEncoded());
+		} catch (CertificateEncodingException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (IOException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
 		}
 	}
 	
@@ -202,10 +94,34 @@ public class V3CertificateUtils {
 		}
 	}
 	
-	public static boolean isValide(X509CertificateHolder certificateHolder){
+	public static boolean isValid(X509CertificateHolder certificateHolder){
 		Date notBefore = certificateHolder.getNotBefore();
 		Date notAfter = certificateHolder.getNotAfter();
 		Date now = new Date();
 		return now.after(notBefore) && now.before(notAfter);
+	}
+	
+	public static boolean isCaKey(X509CertificateHolder cert){
+		// check is issuerCertificate is ca certificate
+		Extension basicConstraintsExtension = cert.getExtension(X509Extension.basicConstraints);
+		BasicConstraints issuerBasicConstraints = BasicConstraints.getInstance(basicConstraintsExtension.getParsedValue());
+		if(!issuerBasicConstraints.isCA()) return false;
+		
+		return KeyUsageUtils.hasAllKeyUsage(cert, KeyUsage.keyCertSign);
+	}
+
+	public static boolean isSmimeKey(X509CertificateHolder cert){		
+		return KeyUsageUtils.hasAnyKeyUsage(cert, KeyUsage.nonRepudiation, KeyUsage.digitalSignature, KeyUsage.keyEncipherment);
+	}
+	
+	public static final PublicKey extractPublicKey(X509CertificateHolder subjectCertificate) {
+		try {
+			return PublicKeyUtils.getPublicKey(subjectCertificate, ProviderUtils.bcProvider);
+		} catch (InvalidKeySpecException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		}
 	}
 }

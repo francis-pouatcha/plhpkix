@@ -6,9 +6,9 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Response.Status;
 
 import org.adorsys.plh.pkix.client.cmp.CMPMessagingClient;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnn;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingPollRequest;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingResponses;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncements2;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingRequests;
+import org.adorsys.plh.pkix.core.cmp.stores.PendingResponses2;
 import org.adorsys.plh.pkix.core.utils.store.CertificateStore;
 import org.adorsys.plh.pkix.core.utils.store.InMemoryCertificateStore;
 import org.adorsys.plh.pkix.core.utils.store.InMemoryPrivateKeyHolder;
@@ -52,14 +52,14 @@ public class ScenarioTest2 {
 		CertificateStore adminCertificateStore = new InMemoryCertificateStore();
 		CMPMessagingClient adminClient = new CMPMessagingClient(adminX500Name, addressPrefix, 
 				new InMemoryPrivateKeyHolder(), adminCertificateStore, 
-				new PendingPollRequest(), new PendingCertAnn(), new PendingResponses());
+				new PendingRequests(), new PendingCertAnnouncements2(), new PendingResponses2());
 
 		// Francis
 		X500Name francisX500Name = X500NameHelper.makeX500Name("francis", "francis@plhpkixtest.biz");
 		CertificateStore francisCertificateStore = new InMemoryCertificateStore();
 		CMPMessagingClient francisClient = new CMPMessagingClient(francisX500Name, addressPrefix, 
 				new InMemoryPrivateKeyHolder(), francisCertificateStore, 
-				new PendingPollRequest(), new PendingCertAnn(), new PendingResponses());
+				new PendingRequests(), new PendingCertAnnouncements2(), new PendingResponses2());
 		
 		adminClient.initKeyPair();
 		

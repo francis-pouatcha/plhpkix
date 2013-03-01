@@ -5,12 +5,12 @@ import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStoreException;
 
+import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
 import org.adorsys.plh.pkix.core.smime.engines.CMSSigner;
 import org.adorsys.plh.pkix.core.smime.engines.CMSVerifier;
-import org.adorsys.plh.pkix.core.smime.validator.CMSPart;
-import org.adorsys.plh.pkix.core.smime.validator.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
+import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.asn1.x500.X500Name;

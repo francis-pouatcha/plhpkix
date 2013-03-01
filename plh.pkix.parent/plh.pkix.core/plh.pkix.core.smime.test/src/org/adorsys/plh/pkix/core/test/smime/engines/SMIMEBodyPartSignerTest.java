@@ -18,9 +18,9 @@ import javax.mail.internet.MimeBodyPart;
 
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartSigner;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartVerifier;
-import org.adorsys.plh.pkix.core.smime.validator.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
+import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;

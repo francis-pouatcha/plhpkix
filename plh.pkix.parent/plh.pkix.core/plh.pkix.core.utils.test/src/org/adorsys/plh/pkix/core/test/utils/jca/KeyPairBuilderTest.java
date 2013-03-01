@@ -241,9 +241,9 @@ public class KeyPairBuilderTest {
 //					subjectCertificate.getNotBefore(), subjectCertificate.getNotAfter(), provider);
 		X509CertificateHolder francisCertificateFromCa = 
 			new X509CertificateBuilder()
-				.setCa(false)
-				.setIssuerCertificate(issuerCertificate)
-				.setSubjectSampleCertificate(subjectCertificate)
+				.withCa(false)
+				.withIssuerCertificate(issuerCertificate)
+				.withSubjectSampleCertificate(subjectCertificate)
 				.build(issuerPrivatekey);
 		
 		String francisKeyAliasFromCa = null;
@@ -297,9 +297,9 @@ public class KeyPairBuilderTest {
 //				issuerPrivatekey2, issuerCertificate2, 
 //					subjectCertificate.getNotBefore(), subjectCertificate.getNotAfter(), provider);
 		X509CertificateHolder francisCertificateFromSCa = new X509CertificateBuilder()
-			.setCa(false)
-			.setIssuerCertificate(issuerCertificate2)
-			.setSubjectSampleCertificate(subjectCertificate)
+			.withCa(false)
+			.withIssuerCertificate(issuerCertificate2)
+			.withSubjectSampleCertificate(subjectCertificate)
 			.build(issuerPrivatekey2);
 		String francisKeyAliasFromSCa = null;
 		try {
