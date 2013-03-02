@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +14,12 @@ import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 
+/**
+ * This class is used to manage pending poll requests. A pending poll request
+ * is created when the replies to a request with a poll reply.
+ * @author francis
+ *
+ */
 public class PendingRequests {
 	
 	private static final String dirRelativePath = "pending_requests";
@@ -59,8 +66,15 @@ public class PendingRequests {
 	public void disposePendingRequest(BigInteger certReqId){
 		PendingRequestData pendingRequestData = loadPendingRequest(certReqId);
 		if(pendingRequestData==null) return;
-		PendingRequest pendingRequest = pendingRequestData.getPendingRequest();
-		pendingRequest.setDisposed(new DERGeneralizedTime(new Date()));
+		PendingRequest pendingPollRequest = pendingRequestData.getPendingRequest();
+		pendingPollRequest = new PendingRequest(
+				pendingPollRequest.getCertReqId(), 
+				pendingPollRequest.getPkiMessage(), 
+				pendingPollRequest.getNextPoll(), 
+				pendingPollRequest.getPollRepMessage(), 
+				pendingPollRequest.getPollReqMessage(),
+				new DERGeneralizedTime(new Date()));
+		pendingRequestData = new PendingRequestData(pendingPollRequest);
 		storePollRequestHolder(certReqId, pendingRequestData);
 	}
 
@@ -115,5 +129,9 @@ public class PendingRequests {
 	public PendingRequestData loadPendingRequest(BigInteger certRequestId){
 		if(!pendingRequestHandles.containsKey(certRequestId)) return null;
 		return loadPendingRequest(pendingRequestHandles.get(certRequestId));
+	}
+	
+	public Collection<PendingRequestHandle> listHandles(){
+		return pendingRequestHandles.values();
 	}
 }

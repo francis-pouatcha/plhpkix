@@ -100,7 +100,7 @@ public class PKISignedMessageValidator {
 				List<CertStore> certStores = params.getCertStores();
 				X500Name issuer = x509CertificateHolder.getIssuer();
 				BigInteger serialNumber = x509CertificateHolder.getSerialNumber();
-				byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(x509CertificateHolder);
+				byte[] subjectKeyId = KeyIdUtils.readSubjectKeyIdentifierAsByteString(x509CertificateHolder);
 				X509CertificateHolderSelector certificateHolderSelector = new X509CertificateHolderSelector(issuer, serialNumber, subjectKeyId);
 				// find the signer certificate from our local store
 				Collection<X509Certificate> certCollection = findCerts(

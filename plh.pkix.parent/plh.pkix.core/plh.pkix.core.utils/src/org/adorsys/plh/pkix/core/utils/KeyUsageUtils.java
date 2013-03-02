@@ -30,7 +30,7 @@ public class KeyUsageUtils {
 	public static final boolean hasAllKeyUsage(X509CertificateHolder holder, int... keyUsageBits){
     	Extension extension = holder.getExtension(X509Extension.keyUsage);
         if (extension != null){
-            DERBitString ku = KeyUsage.getInstance(extension);
+            DERBitString ku = KeyUsage.getInstance(extension.getParsedValue());
             int bits = ku.getBytes()[0] & 0xff;
             // no bit, false
             if(keyUsageBits.length<=0) return false;
@@ -55,7 +55,7 @@ public class KeyUsageUtils {
 
         Extension extension = holder.getExtension(X509Extension.keyUsage);
         if (extension != null){
-            DERBitString ku = KeyUsage.getInstance(extension);
+            DERBitString ku = KeyUsage.getInstance(extension.getParsedValue());
             int bits = ku.getBytes()[0] & 0xff;
             // check all bits. Assume true.
             for (int keyUsageBit : keyUsageBits) {

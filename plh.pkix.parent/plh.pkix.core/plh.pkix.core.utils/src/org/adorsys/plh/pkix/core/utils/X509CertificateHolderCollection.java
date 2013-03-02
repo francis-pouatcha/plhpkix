@@ -15,7 +15,7 @@ public class X509CertificateHolderCollection {
 	public X509CertificateHolder findBySubjectKeyIdentifier(byte[] keyId){
 		if(x509CertificateHolders==null) return null;
 		for (X509CertificateHolder x509CertificateHolder : x509CertificateHolders) {
-			byte[] subjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(x509CertificateHolder);
+			byte[] subjectKeyIdentifier = KeyIdUtils.readSubjectKeyIdentifierAsByteString(x509CertificateHolder);
 			if(Arrays.areEqual(keyId, subjectKeyIdentifier)){
 				return x509CertificateHolder;
 			}
@@ -26,8 +26,8 @@ public class X509CertificateHolderCollection {
 	public X509CertificateHolder findBySubjectAndIssuerKeyId(byte[] subjectKeyId, byte[] issuerKeyId){
 		if(x509CertificateHolders==null) return null;
 		for (X509CertificateHolder x509CertificateHolder : x509CertificateHolders) {
-			byte[] subjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsByteString(x509CertificateHolder);
-			byte[] authorityKeyIdentifier = KeyIdUtils.getAuthorityKeyIdentifierAsByteString(x509CertificateHolder);
+			byte[] subjectKeyIdentifier = KeyIdUtils.readSubjectKeyIdentifierAsByteString(x509CertificateHolder);
+			byte[] authorityKeyIdentifier = KeyIdUtils.readAuthorityKeyIdentifierAsByteString(x509CertificateHolder);
 			if(
 					Arrays.areEqual(subjectKeyId, subjectKeyIdentifier) 
 						&&

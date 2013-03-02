@@ -11,10 +11,10 @@ import org.adorsys.plh.pkix.core.cmp.stores.PendingRequest;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingRequestData;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingRequests;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
-import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CertOrEncCert;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
@@ -137,8 +137,8 @@ public class CertificationReplyAcceptActionExecutor {
 		CertTemplate certTemplate = certReqMsg.getCertReq()
 				.getCertTemplate();
 		SubjectPublicKeyInfo publicKeyInfo = certTemplate.getPublicKey();
-		String subjectKeyIdentifier = KeyIdUtils.getSubjectKeyIdentifierAsString(publicKeyInfo);
-		PrivateKeyEntry privateKeyEntry = actionContext.get(PrivateKeyEntry.class,subjectKeyIdentifier);		
+		KeyStoreWraper keyStoreWraper = actionContext.get(KeyStoreWraper.class);
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntryByPublicKeyInfo(publicKeyInfo);
 		if(privateKeyEntry==null){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
 					"CertRequestMessages.request.missingAssociatedPoP");

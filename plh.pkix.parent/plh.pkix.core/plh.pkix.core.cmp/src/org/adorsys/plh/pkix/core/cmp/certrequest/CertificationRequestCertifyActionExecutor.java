@@ -47,7 +47,7 @@ public class CertificationRequestCertifyActionExecutor {
 		// this is the serial number of the certificate used by the issuer 
 		// to sign this certificate.
 		BigInteger serialNumber = certTemplate.getSerialNumber().getPositiveValue();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findKeyEntryBySerialNumber(serialNumber);
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntryBySerialNumber(serialNumber);
 
 		SubjectPublicKeyInfo subjectPublicKeyInfo = certTemplate.getPublicKey();
 		PublicKey subjectPublicKey;

@@ -97,7 +97,7 @@ public class CertificationRequestBuilder {
         CertReqMessages certReqMessages = new CertReqMessages(new CertReqMsg[]{certReqMsg});
         GeneralName subjectGeneralName = new GeneralName(subjectPreCertificate.getSubject());
         GeneralName caGeneralName = new GeneralName(certAuthorityName);
-        byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectPreCertificate);
+        byte[] subjectKeyId = KeyIdUtils.readSubjectKeyIdentifierAsByteString(subjectPreCertificate);
         ProtectedPKIMessage mainMessage = new ProtectedPKIMessageBuilder(subjectGeneralName, caGeneralName)
                                                   .setBody(new PKIBody(PKIBody.TYPE_CERT_REQ, certReqMessages))
                                                   .addCMPCertificate(subjectPreCertificate)// certificate used to sign the message

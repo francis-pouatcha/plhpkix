@@ -1,35 +1,32 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
-import java.security.KeyStore;
 import java.security.cert.X509CRL;
 
 import javax.mail.internet.MimeBodyPart;
-import javax.security.auth.callback.CallbackHandler;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
+import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 
 public class SMIMEBodyPartDecryptorVerifier {
 
 	private MimeBodyPart mimeBodyPart;
-	private CallbackHandler callbackHandler;
-	private KeyStore keyStore;
+	private KeyStoreWraper keyStoreWraper;
 	private X509CRL crl;// can be null
 
 	private final BuilderChecker checker = new BuilderChecker(
 			SMIMEBodyPartDecryptorVerifier.class);
-	public CMSSignedMessageValidator decryptAndVerify() {
-		checker.checkDirty().checkNull(keyStore, callbackHandler, mimeBodyPart);
+	public CMSSignedMessageValidator<MimeBodyPart> decryptAndVerify() {
+		checker.checkDirty().checkNull(keyStoreWraper, mimeBodyPart);
 
 		MimeBodyPart decryptedBodyPart = new SMIMEBodyPartDecryptor()
-				.withKeyStore(keyStore)
-				.withCallbackHandler(callbackHandler)
+				.withKeyStoreWraper(keyStoreWraper)
 				.withMimeBodyPart(mimeBodyPart)
 				.decrypt();
 
 		return new SMIMEBodyPartVerifier()
 			.withCrl(crl)
-			.withKeyStore(keyStore)
+			.withKeyStoreWraper(keyStoreWraper)
 			.withSignedBodyPart(decryptedBodyPart)
 			.readAndVerify();
 	}
@@ -40,14 +37,8 @@ public class SMIMEBodyPartDecryptorVerifier {
 		return this;
 	}
 
-	public SMIMEBodyPartDecryptorVerifier withCallbackHandler(
-			CallbackHandler callbackHandler) {
-		this.callbackHandler = callbackHandler;
-		return this;
-	}
-
-	public SMIMEBodyPartDecryptorVerifier withKeyStore(KeyStore keyStore) {
-		this.keyStore = keyStore;
+	public SMIMEBodyPartDecryptorVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
+		this.keyStoreWraper = keyStoreWraper;
 		return this;
 	}
 

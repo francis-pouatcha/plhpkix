@@ -1,5 +1,7 @@
 package org.adorsys.plh.pkix.core.test.x500;
 
+import java.util.List;
+
 import javax.mail.internet.AddressException;
 
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
@@ -52,11 +54,7 @@ public class X500NameTest {
 	
 	@Test
 	public void testParseEmail(){
-		try {
-			String parseEmailAddress = X500NameHelper.parseEmailAddress("Francis Pouatcha<fpo@adorsys.com>");
-			Assert.assertEquals("fpo@adorsys.com", parseEmailAddress);
-		} catch (AddressException e) {
-			Assert.fail(e.getMessage());
-		}
+		List<String> parseEmailAddresses = X500NameHelper.parseEmailAddress("Francis Pouatcha<fpo@adorsys.com>");
+		Assert.assertEquals("fpo@adorsys.com", parseEmailAddresses.iterator().next());
 	}
 }

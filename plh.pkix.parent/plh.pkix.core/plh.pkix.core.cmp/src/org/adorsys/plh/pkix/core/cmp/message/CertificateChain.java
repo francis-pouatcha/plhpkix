@@ -70,4 +70,12 @@ public class CertificateChain extends ASN1Object {
         return content;
     }
 
+	@SuppressWarnings("unused")
+	private final ASN1Sequence getContent() {
+		return content;
+	}
+	@SuppressWarnings("unused")
+	private final void setContent(ASN1Sequence content) {
+		this.content = content;
+	}
 }

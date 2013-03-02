@@ -7,9 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
-import java.security.KeyStoreException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -18,9 +16,10 @@ import javax.mail.internet.MimeBodyPart;
 
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartSigner;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartVerifier;
-import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.KeyStoreAlias;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
+import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -33,26 +32,12 @@ public class SMIMEBodyPartSignerTest {
 	static X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz");
 	@Test
 	public void test() throws Exception {
-		char[] keystorePass = "Keystore password".toCharArray();
-		char[] privatekeyPass = "private key password".toCharArray();
-		KeyStore keyStore;
-		try {
-			keyStore = KeyStore.Builder.newInstance(
-					KeyPairBuilder.KEYSTORETYPE_STRING,
-					ProviderUtils.bcProvider, 
-					new KeyStore.PasswordProtection(keystorePass))
-					.getKeyStore();
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-		
+		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
 		String keyAlias = new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
-				.withKeyStore(keyStore)
-				.build(privatekeyPass);
-		
-		PrivateKeyEntry privateKeyEntry = (PrivateKeyEntry) keyStore.getEntry(keyAlias, new KeyStore.PasswordProtection(keystorePass));
-
+				.withKeyStoreWraper(keyStoreWraper)
+				.build();
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(new KeyStoreAlias(keyAlias));
 
 		ArrayList<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 		Certificate[] certificateChain = privateKeyEntry.getCertificateChain();
@@ -68,8 +53,7 @@ public class SMIMEBodyPartSignerTest {
 		MimeBodyPart signedBodyPart = new SMIMEBodyPartSigner()
 			.withIssuerName(subjectX500Name)
 			.withMimeBodyPart(document)
-			.withSenderCertificateChain(senderCertificateChain)
-			.sign(privateKeyEntry.getPrivateKey());
+			.sign(privateKeyEntry);
 		
 		File singnedFile = new File("target/rfc4210.pdf.SMIMEBodyPartSignerTest.test.signed.pk7");
 		FileOutputStream fileOutputStream = new FileOutputStream(singnedFile);
@@ -81,7 +65,7 @@ public class SMIMEBodyPartSignerTest {
         MimeBodyPart readSignedBodyPart = signedBodyPart;
 		
         CMSSignedMessageValidator<MimeBodyPart> signedMessageValidator = new SMIMEBodyPartVerifier()
-			.withKeyStore(keyStore)
+			.withKeyStoreWraper(keyStoreWraper)
 			.withSignedBodyPart(readSignedBodyPart)
 			.readAndVerify();
 
@@ -108,26 +92,12 @@ public class SMIMEBodyPartSignerTest {
 
 	@Test
 	public void testOI() throws Exception {
-		char[] keystorePass = "Keystore password".toCharArray();
-		char[] privatekeyPass = "private key password".toCharArray();
-		KeyStore keyStore;
-		try {
-			keyStore = KeyStore.Builder.newInstance(
-					KeyPairBuilder.KEYSTORETYPE_STRING,
-					ProviderUtils.bcProvider, 
-					new KeyStore.PasswordProtection(keystorePass))
-					.getKeyStore();
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-		
+		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
 		String keyAlias = new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
-				.withKeyStore(keyStore)
-				.build(privatekeyPass);
-		
-		PrivateKeyEntry privateKeyEntry = (PrivateKeyEntry) keyStore.getEntry(keyAlias, new KeyStore.PasswordProtection(keystorePass));
-
+				.withKeyStoreWraper(keyStoreWraper)
+				.build();
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(new KeyStoreAlias(keyAlias));
 
 		ArrayList<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 		Certificate[] certificateChain = privateKeyEntry.getCertificateChain();
@@ -144,8 +114,7 @@ public class SMIMEBodyPartSignerTest {
 		MimeBodyPart signedBodyPart = new SMIMEBodyPartSigner()
 			.withIssuerName(subjectX500Name)
 			.withMimeBodyPart(document)
-			.withSenderCertificateChain(senderCertificateChain)
-			.sign(privateKeyEntry.getPrivateKey());
+			.sign(privateKeyEntry);
 		signedBodyPart.setHeader("Content-Transfer-Encoding", "binary");
 		File signedFile = new File("target/rfc4210.pdf.SMIMEBodyPartSignerTest.testOI.signed.pk7");
 		OutputStream fileOutputStream = new BufferedOutputStream(new FileOutputStream(signedFile));
@@ -156,7 +125,7 @@ public class SMIMEBodyPartSignerTest {
         MimeBodyPart readSignedBodyPart = new MimeBodyPart(singnedFileInputStream);
 		
         CMSSignedMessageValidator<MimeBodyPart> signedMessageValidator = new SMIMEBodyPartVerifier()
-			.withKeyStore(keyStore)
+			.withKeyStoreWraper(keyStoreWraper)
 			.withSignedBodyPart(readSignedBodyPart)
 			.readAndVerify();
 

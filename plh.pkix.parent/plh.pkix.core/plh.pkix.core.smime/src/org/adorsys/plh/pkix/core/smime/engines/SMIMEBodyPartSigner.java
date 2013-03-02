@@ -1,9 +1,9 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
-import java.security.PrivateKey;
+import java.security.KeyStore.PrivateKeyEntry;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.MessagingException;
@@ -11,6 +11,7 @@ import javax.mail.internet.MimeBodyPart;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.IssuerAndSerialNumber;
@@ -28,18 +29,19 @@ import org.bouncycastle.util.Store;
 
 public class SMIMEBodyPartSigner {
 
-	private List<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 	private X500Name issuerName;
 	private MimeBodyPart mimeBodyPart;
 	
 	private final BuilderChecker checker = new BuilderChecker(SMIMEBodyPartSigner.class);
-	public MimeBodyPart sign(PrivateKey senderPrivateKey)
+	public MimeBodyPart sign(PrivateKeyEntry senderPrivateKeyEntry)
 			throws SMIMEException, MessagingException
 	{
 		checker.checkDirty()
-			.checkNull(senderPrivateKey, senderCertificateChain, issuerName, mimeBodyPart)
-			.checkEmpty(senderCertificateChain);
+			.checkNull(senderPrivateKeyEntry, issuerName, mimeBodyPart);
 		
+		Certificate[] certificateChain = senderPrivateKeyEntry.getCertificateChain();
+		List<X509Certificate> senderCertificateChain = V3CertificateUtils.convert(certificateChain);
+
 		// create a CertStore containing the certificates we want carried
 		// in the signature
 		Store senderCertStore;
@@ -76,7 +78,7 @@ public class SMIMEBodyPartSigner {
 			gen.addSignerInfoGenerator(new JcaSimpleSignerInfoGeneratorBuilder()
 					.setProvider(ProviderUtils.bcProvider)
 					.setSignedAttributeGenerator(new AttributeTable(signedAttrs))
-					.build("SHA1withRSA", senderPrivateKey, senderCertificate));
+					.build("SHA1withRSA", senderPrivateKeyEntry.getPrivateKey(), senderCertificate));
 		} catch (CertificateEncodingException e) {
 			throw new IllegalStateException(e);
 		} catch (OperatorCreationException e) {
@@ -88,12 +90,6 @@ public class SMIMEBodyPartSigner {
 
 		// extract the multipart object from the SMIMESigned object.
 		return gen.generateEncapsulated(mimeBodyPart);
-	}
-
-	public SMIMEBodyPartSigner withSenderCertificateChain(
-			List<X509Certificate> senderCertificateChain) {
-		this.senderCertificateChain = senderCertificateChain;
-		return this;
 	}
 
 	public SMIMEBodyPartSigner withIssuerName(X500Name issuer) {

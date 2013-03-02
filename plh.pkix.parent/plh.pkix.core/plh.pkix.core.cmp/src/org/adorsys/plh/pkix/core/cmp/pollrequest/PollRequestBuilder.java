@@ -6,6 +6,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Date;
 
+import org.adorsys.plh.pkix.core.cmp.stores.PendingRequest;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingRequestData;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
@@ -20,7 +21,6 @@ import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.cmp.PollRepContent;
 import org.bouncycastle.asn1.cmp.PollReqContent;
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.cmp.CMPException;
@@ -51,19 +51,11 @@ public class PollRequestBuilder {
 		ASN1OctetString recipKID = pollRepPKIMessage.getHeader().getRecipKID();
 		PrivateKeyEntry privateKeyEntry = null;
 		if(recipKID!=null){
-			privateKeyEntry = keyStoreWraper.getMessageKeyEntryBySubjectKeyId(recipKID);
+			privateKeyEntry = keyStoreWraper.findPrivateKeyEntryBySubjectKeyIdentifier(recipKID.getOctets());
 		}
 		
 		if(privateKeyEntry==null){
-			GeneralName recipient = pollRepPKIMessage.getHeader().getRecipient();
-			if(recipient!=null){
-				X500Name subjectName = X500Name.getInstance(recipient.getName());
-				privateKeyEntry = keyStoreWraper.getMessageKeyEntryBySubjectName(subjectName);
-			}
-		}
-		
-		if(privateKeyEntry==null){
-			privateKeyEntry = keyStoreWraper.getAnyMessageKeyEntry();
+			privateKeyEntry = keyStoreWraper.findAnyMessagePrivateKeyEntry();
 		}
 		
 		Certificate certificate = privateKeyEntry.getCertificate();
@@ -84,7 +76,7 @@ public class PollRequestBuilder {
 			throw new IllegalStateException(e);
 		}
 
-		byte[] subjectKeyId = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCert);
+		byte[] subjectKeyId = KeyIdUtils.readSubjectKeyIdentifierAsByteString(subjectCert);
 
 		ProtectedPKIMessage mainMessage;
 		try {
@@ -102,7 +94,20 @@ public class PollRequestBuilder {
 		}
 		
 		PKIMessage pollReqPKIMessage = mainMessage.toASN1Structure();
-		
-		pendingRequestSData.getPendingRequest().setPollReqMessage(pollReqPKIMessage);
+		setPollReqMessage(pollReqPKIMessage, pendingRequestSData, actionContext);
 	}
+    
+	private void setPollReqMessage(PKIMessage pollReqPKIMessage, PendingRequestData pendingRequestData, ActionContext actionContext) {
+		PendingRequest pendingPollRequest = pendingRequestData.getPendingRequest();
+		pendingPollRequest = new PendingRequest(
+				pendingPollRequest.getCertReqId(), 
+				pendingPollRequest.getPkiMessage(), 
+				pendingPollRequest.getNextPoll(), 
+				pendingPollRequest.getPollRepMessage(), 
+				pollReqPKIMessage,
+				pendingPollRequest.getDisposed());
+		PendingRequestData prd = new PendingRequestData(pendingPollRequest);
+		actionContext.put(PendingRequestData.class, null, prd);
+	}
+    
 }

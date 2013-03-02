@@ -1,6 +1,5 @@
 package org.adorsys.plh.pkix.core.cmp.utils;
 
-import java.security.Provider;
 import java.security.cert.X509Certificate;
 
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
@@ -25,14 +24,12 @@ public abstract class RequestVerifier {
 	 */
     public static HttpResponse verifyRequest(ProtectedPKIMessage protectedPKIMessage, X509CertificateHolder certificateHolder){
 
-    	Provider provider = ProviderUtils.bcProvider;
-    	
-		X509Certificate jcaCert = V3CertificateUtils.getCertificate(certificateHolder, provider);
+		X509Certificate jcaCert = V3CertificateUtils.getX509JavaCertificate(certificateHolder);
 
         ContentVerifierProvider verifierProvider;
 		try {
 			verifierProvider = new JcaContentVerifierProviderBuilder()
-				.setProvider(provider).build(jcaCert.getPublicKey());
+				.setProvider(ProviderUtils.bcProvider).build(jcaCert.getPublicKey());
 		} catch (OperatorCreationException e) {
 			return ResponseFactory.create(HttpStatus.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 		}

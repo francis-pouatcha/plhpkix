@@ -2,6 +2,7 @@ package org.adorsys.plh.pkix.core.cmp.stores;
 
 import java.util.Enumeration;
 
+import org.adorsys.plh.pkix.core.cmp.message.CertificateChain;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -12,13 +13,12 @@ import org.bouncycastle.asn1.ASN1TaggedObject;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERTaggedObject;
-import org.bouncycastle.asn1.x509.Certificate;
 
 public class PendingCertAnnouncement extends ASN1Object {
 	
 	// Mandatory
 	private ASN1Integer serial;
-	private Certificate certificate;
+	private CertificateChain certificateChain;
 	private DERGeneralizedTime announcementTime;
 	// Optional
 	private DERGeneralizedTime announcedtTime;
@@ -29,7 +29,7 @@ public class PendingCertAnnouncement extends ASN1Object {
 		Enumeration en = seq.getObjects();
 
         serial = ASN1Integer.getInstance(en.nextElement());
-        certificate = Certificate.getInstance(en.nextElement());
+        certificateChain = CertificateChain.getInstance(en.nextElement());
         announcementTime = DERGeneralizedTime.getInstance(en.nextElement());
 
         while (en.hasMoreElements())
@@ -63,19 +63,26 @@ public class PendingCertAnnouncement extends ASN1Object {
     }
 
     public PendingCertAnnouncement(ASN1Integer serial,
-    		Certificate certificate,
+    		CertificateChain certificateChain,
     		DERGeneralizedTime announcementTime)
     {
     	this.serial = serial;
-        this.certificate = certificate;
+        this.certificateChain = certificateChain;
         this.announcementTime = announcementTime;
+    }
+    public PendingCertAnnouncement(ASN1Integer serial,
+    		CertificateChain certificateChain,
+    		DERGeneralizedTime announcementTime, DERGeneralizedTime announcedTime)
+    {
+    	this(serial, certificateChain, announcementTime);
+    	this.announcedtTime = announcedTime;
     }
 	
     /**
      * <pre>
      * PendingRequestData ::= SEQUENCE {
      * 					serial				ASN1Integer
-     *                  certificate         PKIMessage,
+     *                  certificateChain    CertificateChain,
      *                  announcementTime    DERGeneralizedTime,
      *                  announcedtTime  [0] DERGeneralizedTime OPTIONAL
      * }
@@ -87,7 +94,7 @@ public class PendingCertAnnouncement extends ASN1Object {
         ASN1EncodableVector v = new ASN1EncodableVector();
         
         v.add(serial);
-        v.add(certificate);
+        v.add(certificateChain);
         v.add(announcementTime);
 
         addOptional(v, 0, announcedtTime);
@@ -107,31 +114,32 @@ public class PendingCertAnnouncement extends ASN1Object {
 		return serial;
 	}
 
-	public void setSerial(ASN1Integer serial) {
-		this.serial = serial;
+	public CertificateChain getCertificateChain() {
+		return certificateChain;
 	}
 
-	protected Certificate getPkiMessage() {
-		return certificate;
-	}
-
-	protected void setPkiMessage(Certificate certificate) {
-		this.certificate = certificate;
-	}
-
-	protected DERGeneralizedTime getAnnouncementTime() {
+	public DERGeneralizedTime getAnnouncementTime() {
 		return announcementTime;
 	}
 
-	protected void setAnnouncementTime(DERGeneralizedTime announcementTime) {
-		this.announcementTime = announcementTime;
-	}
-
-	protected DERGeneralizedTime getAnnouncedtTime() {
+	public DERGeneralizedTime getAnnouncedtTime() {
 		return announcedtTime;
 	}
 
-	protected void setAnnouncedtTime(DERGeneralizedTime announcedtTime) {
+	@SuppressWarnings("unused")
+	private final void setSerial(ASN1Integer serial) {
+		this.serial = serial;
+	}
+	@SuppressWarnings("unused")
+	private final void setCertificateChain(CertificateChain certificateChain) {
+		this.certificateChain = certificateChain;
+	}
+	@SuppressWarnings("unused")
+	private final void setAnnouncementTime(DERGeneralizedTime announcementTime) {
+		this.announcementTime = announcementTime;
+	}
+	@SuppressWarnings("unused")
+	private final void setAnnouncedtTime(DERGeneralizedTime announcedtTime) {
 		this.announcedtTime = announcedtTime;
 	}
 }

@@ -18,7 +18,7 @@ public class KeyIdUtilsTest {
 	public void testGetSubjectKeyIdentifierAsByteString() throws NoSuchAlgorithmException, IOException {
 		KeyPairAndCertificateHolder keyPairAndCertificateHolder = new KeyPairBuilderMock().generateSelfSignedKeyPair(new X500Name("cn=test"));
 		X509CertificateHolder subjectCertificateHolder = keyPairAndCertificateHolder.getSubjectCertificateHolder();
-		byte[] byteString = KeyIdUtils.getSubjectKeyIdentifierAsByteString(subjectCertificateHolder);
+		byte[] byteString = KeyIdUtils.readSubjectKeyIdentifierAsByteString(subjectCertificateHolder);
 		JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
 		SubjectKeyIdentifier subjectKeyIdentifier = extUtils.createSubjectKeyIdentifier(subjectCertificateHolder.getSubjectPublicKeyInfo());
 		Assert.assertArrayEquals(byteString, subjectKeyIdentifier.getKeyIdentifier());

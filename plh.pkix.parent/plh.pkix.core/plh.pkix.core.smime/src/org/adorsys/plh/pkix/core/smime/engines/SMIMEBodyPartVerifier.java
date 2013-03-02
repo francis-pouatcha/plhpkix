@@ -1,7 +1,6 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertStore;
@@ -40,7 +39,7 @@ import org.bouncycastle.util.Store;
 
 public class SMIMEBodyPartVerifier {
 
-	private KeyStore keyStore;
+	private KeyStoreWraper keyStoreWraper;
 	private X509CRL crl;
 	private MimeBodyPart signedBodyPart;
 
@@ -48,7 +47,7 @@ public class SMIMEBodyPartVerifier {
 	@SuppressWarnings("deprecation")
 	public CMSSignedMessageValidator<MimeBodyPart> readAndVerify() {
 		checker.checkDirty()
-			.checkNull(keyStore,signedBodyPart);
+			.checkNull(keyStoreWraper,signedBodyPart);
 		
 		SMIMESignedParser smimeSignedParser = null;
 		DigestCalculatorProvider digestCalculatorProvider;
@@ -90,7 +89,7 @@ public class SMIMEBodyPartVerifier {
 			certificatesStore = smimeSignedParser.getCertificates();
 			signerInfos = smimeSignedParser.getSignerInfos();
 			
-			PKIXParameters params = PKIXParametersFactory.makeParams(new KeyStoreWraper(keyStore), crl);
+			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
 			CertStore certificatesAndCRLs = smimeSignedParser.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
 			List<String> senders = new ArrayList<String>();
 	        String[] fromHeader = PartUtils.getFrom(content);
@@ -143,8 +142,8 @@ public class SMIMEBodyPartVerifier {
         return signedMessageValidator;
 	}
 
-	public SMIMEBodyPartVerifier withKeyStore(KeyStore keyStore) {
-		this.keyStore = keyStore;
+	public SMIMEBodyPartVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
+		this.keyStoreWraper = keyStoreWraper;
 		return this;
 	}
 

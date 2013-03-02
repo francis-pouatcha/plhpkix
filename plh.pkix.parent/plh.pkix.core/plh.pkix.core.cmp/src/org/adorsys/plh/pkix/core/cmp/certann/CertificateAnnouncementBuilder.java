@@ -43,7 +43,7 @@ public class CertificateAnnouncementBuilder {
 		}
 
 		byte[] subjectKeyId = KeyIdUtils
-				.getSubjectKeyIdentifierAsByteString(subjectCertificate);
+				.readSubjectKeyIdentifierAsByteString(subjectCertificate);
 		CMPCertificate cmpCertificate = new CMPCertificate(
 				subjectCertificate.toASN1Structure());
 

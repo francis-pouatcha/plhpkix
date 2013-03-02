@@ -60,7 +60,7 @@ public class DeviceAccount implements Device {
 				.withPrivateKeyHolder(deviceAccountPrivateKeyHolder)
 				.withEndEntityName(deviceAccountX500Name)
 				.build0();
-			deviceAccountCertificate = deviceAccountCertificateStore.getCertificate(deviceAccountX500Name);
+			deviceAccountCertificate = deviceAccountCertificateStore.getX509JavaCertificate(deviceAccountX500Name);
 			deviceAccountPrivateKey = deviceAccountPrivateKeyHolder.getPrivateKey(deviceAccountCertificate);
 			deviceAccountKeystoreDir.mkdir();
 			try {

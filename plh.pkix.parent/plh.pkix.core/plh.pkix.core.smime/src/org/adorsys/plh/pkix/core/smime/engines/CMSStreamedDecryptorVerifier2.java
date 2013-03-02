@@ -2,29 +2,18 @@ package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
-import java.security.KeyStore;
-import java.security.KeyStore.PrivateKeyEntry;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.UnrecoverableEntryException;
 import java.security.cert.CertStore;
 import java.security.cert.CertificateException;
 import java.security.cert.PKIXParameters;
 import java.security.cert.X509CRL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-
-import org.adorsys.plh.pkix.core.smime.utils.KeyAliasSelector;
+import org.adorsys.plh.pkix.core.smime.utils.RecipientAndRecipientInfo;
+import org.adorsys.plh.pkix.core.smime.utils.RecipientSelector;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
@@ -35,14 +24,11 @@ import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedDataParser;
 import org.bouncycastle.cms.CMSTypedStream;
-import org.bouncycastle.cms.KeyTransRecipientId;
-import org.bouncycastle.cms.RecipientId;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.RecipientInformationStore;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
-import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -51,15 +37,14 @@ import org.bouncycastle.util.Store;
 
 public class CMSStreamedDecryptorVerifier2 {
 	
-	private KeyStore keyStore;
+	private KeyStoreWraper keyStoreWraper;
 	private X509CRL crl;
-	private CallbackHandler callbackHandler;
 	private InputStream inputStream;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSStreamedDecryptorVerifier2.class);
 	public InputStream decryptingInputStream() {
 		checker.checkDirty()
-			.checkNull(keyStore, callbackHandler,inputStream);//,outputStream);
+			.checkNull(keyStoreWraper, inputStream);
 		
 		CMSEnvelopedDataParser cmsEnvelopedDataParser;
 		try {
@@ -71,73 +56,29 @@ public class CMSStreamedDecryptorVerifier2 {
 		}
 
 		RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
-
         @SuppressWarnings("rawtypes")
 		Collection recipientsColection = recipients.getRecipients();
-        RecipientInformation recipient = null;
-        PrivateKeyEntry privateKeyEntry = null;
-        Map<BigInteger, RecipientInformation> recipientsBySerialNumber =new HashMap<BigInteger, RecipientInformation>();
-        Map<byte[], RecipientInformation> recipientsBySubjectKeyId =new HashMap<byte[], RecipientInformation>();
+        List<RecipientInformation> recipientInfoList = new ArrayList<RecipientInformation>();
         for (Object object : recipientsColection) {
-            recipient = (RecipientInformation)object;
-            RecipientId recipientId = recipient.getRID();
-            if(!(recipientId instanceof KeyTransRecipientId)) continue;
-            
-            KeyTransRecipientId keyTransRecipientId = (KeyTransRecipientId) recipientId;
-            recipientsBySubjectKeyId.put(keyTransRecipientId.getSubjectKeyIdentifier(), recipient);
-            recipientsBySerialNumber.put(keyTransRecipientId.getSerialNumber(), recipient);
-        }        
+        	recipientInfoList.add((RecipientInformation) object);
+        }
         
-        recipientsBySubjectKeyId.keySet();
-        Enumeration<String> aliasesEnum;
-		try {
-			aliasesEnum = keyStore.aliases();
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-        ArrayList<String> aliases = new ArrayList<String>();
-        while (aliasesEnum.hasMoreElements()) {
-			String string = (String) aliasesEnum.nextElement();
-			aliases.add(string);
-		}
-        for (Object object : recipientsColection) {
-            recipient = (RecipientInformation)object;
-            RecipientId recipientId = recipient.getRID();
-            if(!(recipientId instanceof KeyTransRecipientId)) continue;
-            String alias = new KeyAliasSelector()
-            	.addAliases(aliases)
-            	.setRecipientInformation(recipient)
-            	.select();
-            try {
-            	PasswordCallback passwordCallback = new PasswordCallback("Enter your password", false);
-            	callbackHandler.handle(new Callback[]{passwordCallback});
-				privateKeyEntry = (PrivateKeyEntry) keyStore.getEntry(alias, new KeyStore.PasswordProtection(passwordCallback.getPassword()));
-			} catch (NoSuchAlgorithmException e) {
-				throw new IllegalStateException(e);
-			} catch (UnrecoverableEntryException e) {
-				throw new SecurityException(e);
-			} catch (KeyStoreException e) {
-				throw new IllegalStateException(e);
-			} catch (UnsupportedCallbackException e) {
-				throw new IllegalStateException(e);
-			} catch (IOException e) {
-				throw new IllegalArgumentException(e);// can not access callback handler
-			}
-		}
-
-        if(recipient==null || privateKeyEntry==null) throw new SecurityException("No matching private key found for recipients of this file");
+        RecipientAndRecipientInfo recipientAndRecipientInfo = new RecipientSelector()
+        	.withKeyStoreWraper(keyStoreWraper)
+        	.withRecipientInfosColection(recipientInfoList)
+        	.select();
         
-        InputStream encrryptedContentStream;
+        InputStream encrryptedContentStream = null;
         try {
-        	CMSTypedStream contentStream = recipient.getContentStream(
-					new JceKeyTransEnvelopedRecipient(privateKeyEntry.getPrivateKey()).setProvider(ProviderUtils.bcProvider));
+        	CMSTypedStream contentStream = recipientAndRecipientInfo.getRecipientInformation()
+        			.getContentStream(recipientAndRecipientInfo.getRecipient());						
         	encrryptedContentStream = contentStream.getContentStream();
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
 		} catch (IOException e) {// can not read content stream
 			throw new IllegalStateException(e);
 		}
-
+		
 		try {
 			DigestCalculatorProvider digestCalculatorProvider = new JcaDigestCalculatorProviderBuilder().setProvider(ProviderUtils.bcProvider).build();
 			sp = new CMSSignedDataParser(digestCalculatorProvider,encrryptedContentStream);
@@ -164,7 +105,8 @@ public class CMSStreamedDecryptorVerifier2 {
 			certificatesStore = sp.getCertificates();
 			signerInfos = sp.getSignerInfos();
 			
-			PKIXParameters params = PKIXParametersFactory.makeParams(new KeyStoreWraper(keyStore), crl);
+			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
+			@SuppressWarnings("deprecation")
 			CertStore certificatesAndCRLs = sp.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
 			signedMessageValidator
 				.withCerts(certificatesAndCRLs)
@@ -209,18 +151,13 @@ public class CMSStreamedDecryptorVerifier2 {
 		
 	}
 
-	public CMSStreamedDecryptorVerifier2 withKeyStore(KeyStore keyStore) {
-		this.keyStore = keyStore;
+	public CMSStreamedDecryptorVerifier2 withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
+		this.keyStoreWraper = keyStoreWraper;
 		return this;
 	}
 
 	public CMSStreamedDecryptorVerifier2 withCrl(X509CRL crl) {
 		this.crl = crl;
-		return this;
-	}
-
-	public CMSStreamedDecryptorVerifier2 withCallbackHandler(CallbackHandler callbackHandler) {
-		this.callbackHandler = callbackHandler;
 		return this;
 	}
 

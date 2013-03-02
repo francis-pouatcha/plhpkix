@@ -1,31 +1,39 @@
 package org.adorsys.plh.pkix.core.utils.store;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStore.ProtectionParameter;
+import java.security.KeyStore.SecretKeyEntry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.adorsys.plh.pkix.core.utils.KeyAliasUtils;
+import org.adorsys.plh.pkix.core.utils.KeyStoreAlias;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.exception.PlhCheckedException;
 import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
-import org.bouncycastle.asn1.ASN1OctetString;
-import org.bouncycastle.asn1.x500.X500Name;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.i18n.ErrorBundle;
 import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -38,20 +46,23 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
  *
  */
 public class KeyStoreWraper {
+
+	public static final String KEYSTORETYPE_STRING = "PKCS12";	
 	
 	private final KeyStore keyStore;
-	
 	private final FileWrapper keyStoreFile;
-	
 	private final ProtectionParameter protParam;
-	
 	private final char[] keyPass;
+	private final char[] storePass;
 	
-	public KeyStoreWraper(KeyStore keyStore, FileWrapper keyStoreFile, char[] keyPass) {
-		this.keyStore = keyStore;
+	public KeyStoreWraper(FileWrapper keyStoreFile, char[] keyPass, char[] storePass) {
+		this.keyStore = instance(storePass);
 		this.keyStoreFile = keyStoreFile;
 		protParam = new KeyStore.PasswordProtection(keyPass);
 		this.keyPass = keyPass;
+		this.storePass = storePass;
+		if(this.keyStoreFile!=null && this.keyStoreFile.exists())
+			load();
 	}
 
 	/**
@@ -62,28 +73,10 @@ public class KeyStoreWraper {
 	 * 
 	 * @return
 	 */
-	public PrivateKeyEntry findKeyEntryBySerialNumber(BigInteger serialNumber) {
-		Enumeration<String> aliases;
-		try {
-			aliases = keyStore.aliases();
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-		List<String> foundAliases = KeyAliasUtils.selectBySerialNumber(aliases, serialNumber);
+	public PrivateKeyEntry findPrivateKeyEntryBySerialNumber(BigInteger serialNumber) {
+		List<KeyStoreAlias> foundAliases = KeyStoreAlias.selectBySerialNumber(aliases(), serialNumber);
 		if(foundAliases.isEmpty())return null;
-		Entry entry;
-		try {
-			entry = keyStore.getEntry(foundAliases.iterator().next(), protParam);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		} catch (UnrecoverableEntryException e) {
-			throw new IllegalStateException(e);
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-
-		if(entry instanceof PrivateKeyEntry) return (PrivateKeyEntry) entry;
-		return null;
+		return findPrivateKeyEntry(foundAliases);
 	}
 	
 	public Enumeration<String> aliases() {
@@ -108,9 +101,9 @@ public class KeyStoreWraper {
 		}
 	}
 	
-	public boolean containsAlias(String alias) {
+	public boolean containsAlias(KeyStoreAlias alias) {
 		try {
-			return keyStore.containsAlias(alias);
+			return keyStore.containsAlias(alias.getAlias());
 		} catch (KeyStoreException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
             		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
@@ -130,9 +123,9 @@ public class KeyStoreWraper {
 		}
 	}
 
-	public Certificate getCertificate(String alias) {
+	public Certificate getCertificate(KeyStoreAlias alias) {
 		try {
-			return keyStore.getCertificate(alias);
+			return keyStore.getCertificate(alias.getAlias());
 		} catch (KeyStoreException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
             		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
@@ -149,44 +142,36 @@ public class KeyStoreWraper {
 	 * @param certArray
 	 * @throws PlhCheckedException 
 	 */
-	public void importIssuedCertificate(PrivateKeyEntry privateKeyEntry,
-			org.bouncycastle.asn1.x509.Certificate[] certArray) throws PlhCheckedException {
-		JcaX509CertificateConverter jcaX509CertificateConverter = new JcaX509CertificateConverter();
+	public void importIssuedCertificate(org.bouncycastle.asn1.x509.Certificate[] certArray) throws PlhCheckedException {
+		// do no process empty inputs
+		if(certArray.length<=0) return;
+		
 		Certificate[] chain = new Certificate[certArray.length];
-		String keyAlias = null;
+		X509CertificateHolder[] certificateHolderChain = new X509CertificateHolder [certArray.length];
 		for (int i = 0; i < certArray.length; i++) {
-			org.bouncycastle.asn1.x509.Certificate certificate = certArray[i];
-			X509CertificateHolder x509CertificateHolder;
-			try {
-				x509CertificateHolder = new X509CertificateHolder(certificate.getEncoded());
-			} catch (IOException e) {
-	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
-	            		PlhPkixCoreMessages.KeyStoreWraper_certImport_generalCertificateException,
-	                    new Object[] { e.getMessage(), e , e.getClass().getName()});
-	            throw new PlhUncheckedException(msg, e);
-			}
-			X509Certificate x509Certificate;
-			try {
-				x509Certificate = jcaX509CertificateConverter.getCertificate(x509CertificateHolder);
-			} catch (CertificateException e) {
-	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
-	            		PlhPkixCoreMessages.KeyStoreWraper_certImport_invalidCertificate,
-	                    new Object[] { x509CertificateHolder.getSubject(), 
-	            	x509CertificateHolder.getIssuer() , x509CertificateHolder.getSerialNumber()});
-	            throw new PlhCheckedException(msg);
-			}
-			chain[i]=x509Certificate;
-			if(i==0) 
-				keyAlias = KeyAliasUtils.computeKeyAlias(x509CertificateHolder);
+			certificateHolderChain[i] = new X509CertificateHolder(certArray[i]);
+			chain[i] = V3CertificateUtils.getX509JavaCertificate(certificateHolderChain[i]);
 		}
+		//get the associated private key from the key store
+		List<KeyStoreAlias> existingAliases = KeyStoreAlias.selectBySubjectKeyIdentifier(aliases(), certificateHolderChain[0]);
+		PrivateKeyEntry privateKeyEntry = findPrivateKeyEntry(existingAliases);
+		if(privateKeyEntry==null){
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_certImport_missingPrivateKeyEntry,
+                    new Object[] { certificateHolderChain[0].getSubject(), certificateHolderChain[0].getIssuer() , certificateHolderChain[0].getSerialNumber()});
+            throw new PlhCheckedException(msg);
+		}
+
+		KeyStoreAlias newKeyAlias = new KeyStoreAlias(certificateHolderChain[0]);
 		try {
-			keyStore.setKeyEntry(keyAlias, privateKeyEntry.getPrivateKey(), keyPass, chain);
+			keyStore.setKeyEntry(newKeyAlias.getAlias(), privateKeyEntry.getPrivateKey(), keyPass, chain);
 		} catch (KeyStoreException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
             		PlhPkixCoreMessages.KeyStoreWraper_certImport_keystoreException,
                     new Object[] { e.getMessage(), e , e.getClass().getName()});
             throw new PlhUncheckedException(msg, e);
 		}		
+		store();
 	}
 	
 	/**
@@ -198,23 +183,20 @@ public class KeyStoreWraper {
 	 * @throws PlhCheckedException 
 	 */
 	public void importCertificates(
-			org.bouncycastle.asn1.x509.Certificate[] certArray) throws PlhCheckedException {
-		JcaX509CertificateConverter jcaX509CertificateConverter = new JcaX509CertificateConverter();
+			org.bouncycastle.asn1.x509.Certificate... certArray) throws PlhCheckedException {
+
 		Certificate[] chain = new Certificate[certArray.length];
-		String[] keyAliases = new String[certArray.length];
+		KeyStoreAlias[] keyAliases = new KeyStoreAlias[certArray.length];
 		X509CertificateHolder[] holderChain = new X509CertificateHolder[certArray.length];
 		for (int i = 0; i < certArray.length; i++) {
 			org.bouncycastle.asn1.x509.Certificate certificate = certArray[i];
-			X509CertificateHolder x509CertificateHolder;
-			try {
-				x509CertificateHolder = new X509CertificateHolder(certificate.getEncoded());
-			} catch (IOException e) {
-	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
-	            		PlhPkixCoreMessages.KeyStoreWraper_certImport_generalCertificateException,
-	                    new Object[] { e.getMessage(), e , e.getClass().getName()});
-	            throw new PlhUncheckedException(msg, e);
-			}
-			keyAliases[i]=KeyAliasUtils.computeKeyAlias(x509CertificateHolder);
+			holderChain[i]=new X509CertificateHolder(certificate);
+		}
+		
+		for (int i = 0; i < certArray.length; i++) {
+			org.bouncycastle.asn1.x509.Certificate certificate = certArray[i];
+			X509CertificateHolder x509CertificateHolder = new X509CertificateHolder(certificate);
+			keyAliases[i]=new KeyStoreAlias(x509CertificateHolder);
 			
 			// We keep the key store certificate if existing .
 
@@ -236,16 +218,7 @@ public class KeyStoreWraper {
 		            throw new PlhUncheckedException(msg, e);
 				}
 			} else {
-				X509Certificate x509Certificate;
-				try {
-					x509Certificate = jcaX509CertificateConverter.getCertificate(x509CertificateHolder);
-				} catch (CertificateException e) {
-		            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
-		            		PlhPkixCoreMessages.KeyStoreWraper_certImport_invalidCertificate,
-		                    new Object[] { holderChain[i].getSubject(), holderChain[i].getIssuer() , holderChain[i].getSerialNumber()});
-		            throw new PlhCheckedException(msg);
-				}
-				chain[i]=x509Certificate;
+				chain[i] = V3CertificateUtils.getX509JavaCertificate(x509CertificateHolder);
 			}
 			holderChain[i]=x509CertificateHolder;
 			if(i>0){
@@ -285,9 +258,9 @@ public class KeyStoreWraper {
 		
 		for (int i = 0; i < chain.length; i++) {
 			Certificate certificate = chain[i];
-			String keyAlias = keyAliases[i];
+			KeyStoreAlias keyAlias = keyAliases[i];
 			try {
-				keyStore.setCertificateEntry(keyAlias, certificate);
+				keyStore.setCertificateEntry(keyAlias.getAlias(), certificate);
 			} catch (KeyStoreException e) {
 	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
 	            		PlhPkixCoreMessages.KeyStoreWraper_certImport_keystoreException,
@@ -295,24 +268,49 @@ public class KeyStoreWraper {
 	            throw new PlhUncheckedException(msg, e);
 			}
 		}
+		store();
 	}
 
-	public PrivateKeyEntry getMessageKeyEntryBySubjectKeyId(ASN1OctetString subjectKID) {
+	public PrivateKeyEntry findPrivateKeyEntryByPublicKeyInfo(SubjectPublicKeyInfo subjectPublicKeyInfo){
+		List<KeyStoreAlias> foundAliases = KeyStoreAlias.selectByPublicKeyIdentifier(aliases(), subjectPublicKeyInfo);
+		return findPrivateKeyEntry(foundAliases);
+	}
+	public PrivateKeyEntry findMessagePrivateKeyEntryByIssuerCertificate(X509CertificateHolder issuerCertificate) {
 		Enumeration<String> aliases = aliases();
-		List<String> foundAliases = KeyAliasUtils.selectBySubjectKeyIdentifier(aliases, subjectKID.getOctets());
-		for (String alias : foundAliases) {
-			PrivateKeyEntry keyEntry = getKeyEntry(alias);
-			Certificate certificate = keyEntry.getCertificate();
-			X509CertificateHolder x509CertificateHolder = new X509CertificateHolder(certificate.getEncoded());
+		List<KeyStoreAlias> foundAliases = KeyStoreAlias.selectByIssuerKeyIdentifier(aliases, issuerCertificate);
+		return selectMessagePrivateKeyEntry(foundAliases);
+	}
+	
+	public PrivateKeyEntry findAnyMessagePrivateKeyEntry() {
+		Enumeration<String> aliases = aliases();
+		List<KeyStoreAlias> foundAliases = new ArrayList<KeyStoreAlias>();
+		while (aliases.hasMoreElements()) {
+			foundAliases.add(new KeyStoreAlias((String)aliases.nextElement()));
+		}
+		return selectMessagePrivateKeyEntry(foundAliases);
+	}
+	
+	public PrivateKeyEntry findPrivateKeyEntryBySubjectKeyIdentifier(byte[] subjectKeyIdentifierBytes){
+		List<KeyStoreAlias> keyStoreAliases = KeyStoreAlias.selectBySubjectKeyIdentifier(aliases(), subjectKeyIdentifierBytes);
+		return findPrivateKeyEntry(keyStoreAliases);
+	}
+
+	private PrivateKeyEntry selectMessagePrivateKeyEntry(List<KeyStoreAlias> foundAliases){
+		for (KeyStoreAlias alias : foundAliases) {
+			PrivateKeyEntry keyEntry = findPrivateKeyEntry(alias);
+			X509CertificateHolder x509CertificateHolder = V3CertificateUtils.getX509CertificateHolder(keyEntry.getCertificate());
 			if(V3CertificateUtils.isSmimeKey(x509CertificateHolder)) return keyEntry;
 		}
-
 		return null;
 	}
 
-	public PrivateKeyEntry getKeyEntry(String alias) {
+	public PrivateKeyEntry findPrivateKeyEntry(List<KeyStoreAlias> keyStoreAliases) {
 		try {
-			return (PrivateKeyEntry) keyStore.getEntry(alias, protParam);
+			for (KeyStoreAlias keyStoreAlias : keyStoreAliases) {
+				Entry entry = keyStore.getEntry(keyStoreAlias.getAlias(), protParam);
+				if(entry!=null && entry instanceof PrivateKeyEntry) return (PrivateKeyEntry) entry;				
+			}
+			return null;
 		} catch (NoSuchAlgorithmException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
             		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
@@ -330,37 +328,161 @@ public class KeyStoreWraper {
             throw new PlhUncheckedException(msg, e);
 		}
 	}
-	
-	public PrivateKeyEntry getMessageKeyEntryBySubjectName(X500Name subjectName) {
-		KeyAliasUtils.selectByIssuerKeyIdentifier(aliases, certificateHolder)
-		return null;
+
+	public PrivateKeyEntry findPrivateKeyEntry(KeyStoreAlias...keyStoreAliases) {
+		return findPrivateKeyEntry(Arrays.asList(keyStoreAliases));
 	}
 
-	public PrivateKeyEntry getMessageKeyEntryByIssuerCertificate(X509CertificateHolder issuerCertificate) {
-		Enumeration<String> aliases;
-		try {
-			aliases = keyStore.aliases();
-		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
-		}
-		String alias = KeyAliasUtils.selectByIssuerKeyIdentifier(aliases, issuerCertificate);
-		if(alias==null)return null;
+	public SecretKeyEntry findKEKEntryByKeyIdentifier(byte[] keyIdentifier) {
+		String keyAlias = KeyStoreAlias.makeKEKAlias(keyIdentifier);
 		Entry entry;
 		try {
-			entry = keyStore.getEntry(alias, protParam);
+			entry = keyStore.getEntry(keyAlias, protParam);
 		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
 		} catch (UnrecoverableEntryException e) {
-			throw new IllegalStateException(e);
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
 		} catch (KeyStoreException e) {
-			throw new IllegalStateException(e);
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
 		}
-
-		if(entry instanceof PrivateKeyEntry) return (PrivateKeyEntry) entry;
+		if(entry instanceof SecretKeyEntry) return (SecretKeyEntry) entry;
 		return null;
 	}
 	
-	public PrivateKeyEntry getAnyMessageKeyEntry() {
-		return null;
+	public void load(){
+		if(keyStoreFile==null) return;
+		InputStream inputStream = keyStoreFile.newInputStream();
+		try {
+			keyStore.load(inputStream, storePass);
+		} catch (NoSuchAlgorithmException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (CertificateException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_certImport_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (IOException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} finally {
+			IOUtils.closeQuietly(inputStream);
+		}
+	}
+	
+	private void store(){
+		if(keyStoreFile==null) return;
+		OutputStream outputStream = keyStoreFile.newOutputStream();
+		try {
+			keyStore.store(outputStream, storePass);
+		} catch (KeyStoreException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (NoSuchAlgorithmException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (CertificateException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_certImport_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} catch (IOException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		} finally {
+			IOUtils.closeQuietly(outputStream);
+		}
+	}
+	
+	public Set<TrustAnchor> getTrustAnchors(){
+		Set<TrustAnchor> hashSet = new HashSet<TrustAnchor>();
+		Enumeration<String> aliases = aliases();
+		while (aliases.hasMoreElements()) {
+			String alias = aliases.nextElement();
+			if (isKeyEntry(alias) || isCertificateEntry(alias)) {
+				Certificate cert = getCertificate(new KeyStoreAlias(alias));
+				if(cert==null) continue;
+				if (cert instanceof X509Certificate)
+					hashSet.add(new TrustAnchor((X509Certificate) cert, null));
+			}
+		}
+		return hashSet;
+	}
+	
+	
+	private static final KeyStore instance(char[] storePass){
+		try {
+			return KeyStore.Builder.newInstance(KEYSTORETYPE_STRING,
+					ProviderUtils.bcProvider, 
+					new KeyStore.PasswordProtection(storePass))
+					.getKeyStore();
+		} catch (KeyStoreException e) {
+	          ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+	    		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+	            new Object[] { e.getMessage(), e , e.getClass().getName()});
+	          throw new PlhUncheckedException(msg, e);
+		}
+		
+	}
+
+	public void setKeyEntry(Key key,
+			Certificate[] chain) {
+		try {
+			X509CertificateHolder certificateHolder = V3CertificateUtils.getX509CertificateHolder(chain[0]);
+			String alias = new KeyStoreAlias(certificateHolder).getAlias();			
+			keyStore.setKeyEntry(alias, key, keyPass, chain);
+		} catch (KeyStoreException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.KeyStoreWraper_certImport_keystoreException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		}
+		store();
+	}
+	
+	public List<X509CertificateHolder> loadCertificates(){
+		Enumeration<String> aliases = aliases();
+		List<X509CertificateHolder> result = new ArrayList<X509CertificateHolder>();
+		while (aliases.hasMoreElements()) {
+			String alias = (String) aliases.nextElement();
+			if(isCertificateEntry(alias)) {
+				Certificate certificate;
+				try {
+					certificate = keyStore.getCertificate(alias);
+				} catch (KeyStoreException e) {
+			          ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+			  	    		PlhPkixCoreMessages.KeyStoreWraper_read_keystoreException,
+			  	            new Object[] { e.getMessage(), e , e.getClass().getName()});
+			  	          throw new PlhUncheckedException(msg, e);
+				}
+				X509CertificateHolder certificateHolder = V3CertificateUtils.getX509CertificateHolder(certificate);
+				result .add(certificateHolder);
+			}
+		}
+		return result;
+	}
+
+	public PrivateKeyEntry findPrivateKeyEntry(
+			X509CertificateHolder certificateHolder) {
+		return findPrivateKeyEntry(new KeyStoreAlias(certificateHolder));
 	}
 }

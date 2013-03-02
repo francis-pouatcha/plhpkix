@@ -1,6 +1,5 @@
 package org.adorsys.plh.pkix.core.cmp.utils;
 
-import java.security.Provider;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -26,14 +25,12 @@ public abstract class X509CertificateVerifier {
 		if(!issuerCertHolder.isValidOn(date)) 
 			return ResponseFactory.create(HttpStatus.SC_NOT_ACCEPTABLE, "Expired signer certificate");
     	
-		Provider provider = ProviderUtils.bcProvider;
-    	
-		X509Certificate issuerCert = V3CertificateUtils.getCertificate(issuerCertHolder, provider);
+		X509Certificate issuerCert = V3CertificateUtils.getX509JavaCertificate(issuerCertHolder);
 
         ContentVerifierProvider verifierProvider;
 		try {
 			verifierProvider = new JcaContentVerifierProviderBuilder()
-				.setProvider(provider).build(issuerCert.getPublicKey());
+				.setProvider(ProviderUtils.bcProvider).build(issuerCert.getPublicKey());
 		} catch (OperatorCreationException e) {
 			return ResponseFactory.create(HttpStatus.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 		}

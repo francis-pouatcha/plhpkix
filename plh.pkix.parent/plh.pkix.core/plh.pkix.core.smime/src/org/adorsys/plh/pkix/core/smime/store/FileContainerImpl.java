@@ -13,14 +13,25 @@ import java.util.Arrays;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedDecryptorVerifier;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedSignerEncryptor;
 import org.adorsys.plh.pkix.core.smime.utils.CloseSubstreamsOutputStream;
+import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 
 public class FileContainerImpl implements FilesContainer {
 
 	
-	private PrivateKeyEntry containerPrivateKeyEntry;
-	private File rootDirectory;
+	private final PrivateKeyEntry containerPrivateKeyEntry;
+	private final File rootDirectory;
+
+
+	private final BuilderChecker checker = new BuilderChecker(FileContainerImpl.class);
+	public FileContainerImpl(PrivateKeyEntry containerPrivateKeyEntry,
+			File rootDirectory) {
+		checker.checkNull(containerPrivateKeyEntry, rootDirectory);
+		this.containerPrivateKeyEntry = containerPrivateKeyEntry;
+		this.rootDirectory = rootDirectory;
+		this.rootDirectory.mkdirs();
+	}
 
 	@Override
 	public FileWrapper newFile(String fileRelativePath) {
@@ -55,9 +66,8 @@ public class FileContainerImpl implements FilesContainer {
 		}
 		OutputStream signingEncryptingOutputStream = new CMSStreamedSignerEncryptor()
 		.withRecipientCertificates(Arrays.asList(certificate))
-		.withSignerCertificateChain(containerPrivateKeyEntry.getCertificateChain())
 		.withOutputStream(signedEncryptedOutputStream)
-		.signingEncryptingOutputStream(containerPrivateKeyEntry.getPrivateKey());
+		.signingEncryptingOutputStream(containerPrivateKeyEntry);
 		CloseSubstreamsOutputStream closeSubstreamsOutputStream = new CloseSubstreamsOutputStream(signingEncryptingOutputStream);
 		closeSubstreamsOutputStream.addSubStream(signedEncryptedOutputStream);
 		return closeSubstreamsOutputStream;

@@ -23,7 +23,7 @@ public class RequestVerifier2 {
     	checker.checkDirty()
     		.checkNull(protectedPKIMessage, certificateHolder);
     	
-		X509Certificate jcaCert = V3CertificateUtils.getCertificate(certificateHolder, ProviderUtils.bcProvider);
+		X509Certificate jcaCert = V3CertificateUtils.getX509JavaCertificate(certificateHolder);
 		
         ContentVerifierProvider verifierProvider;
 		try {

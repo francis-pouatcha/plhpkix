@@ -69,7 +69,7 @@ public class FileBasedKeyStore implements CertificateStore, PrivateKeyHolder {
 
 	@Override
 	public X509CertificateHolder getCertificate(X500Name subject) {
-		return getCertificate(X500NameHelper.getCN(subject));
+		return getX509JavaCertificate(X500NameHelper.getCN(subject));
 	}
 
 	@Override

@@ -1,7 +1,6 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertStore;
@@ -31,14 +30,14 @@ import org.bouncycastle.util.Store;
 public class CMSVerifier {
 	
 	private CMSPart inputPart;
-	private KeyStore keyStore;
+	private KeyStoreWraper keyStoreWraper;
 	private X509CRL crl;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSVerifier.class);
 	@SuppressWarnings("deprecation")
 	public CMSSignedMessageValidator<CMSPart> readAndVerify() throws IOException {
 		checker.checkDirty()
-			.checkNull(keyStore,inputPart);
+			.checkNull(keyStoreWraper,inputPart);
 		
         CMSSignedDataParser sp;
 		try {
@@ -61,7 +60,7 @@ public class CMSVerifier {
 			certificatesStore = sp.getCertificates();
 			signerInfos = sp.getSignerInfos();
 			
-			PKIXParameters params = PKIXParametersFactory.makeParams(new KeyStoreWraper(keyStore), crl);
+			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
 			CertStore certificatesAndCRLs = sp.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
 			signedMessageValidator
 				.withCerts(certificatesAndCRLs)
@@ -111,8 +110,8 @@ public class CMSVerifier {
 		return this;
 	}
 
-	public CMSVerifier withKeyStore(KeyStore keyStore) {
-		this.keyStore = keyStore;
+	public CMSVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
+		this.keyStoreWraper = keyStoreWraper;
 		return this;
 	}
 
@@ -120,5 +119,4 @@ public class CMSVerifier {
 		this.crl = crl;
 		return this;
 	}
-
 }

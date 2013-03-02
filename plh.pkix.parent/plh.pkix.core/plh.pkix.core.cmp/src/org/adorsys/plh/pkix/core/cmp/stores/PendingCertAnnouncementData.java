@@ -17,7 +17,7 @@ public class PendingCertAnnouncementData implements ActionData {
 	public PendingCertAnnouncementData() {
 	}
 
-	protected PendingCertAnnouncement getPendingCertAnnouncement() {
+	public PendingCertAnnouncement getPendingCertAnnouncement() {
 		return pendingCertAnnouncement;
 	}
 
@@ -30,4 +30,5 @@ public class PendingCertAnnouncementData implements ActionData {
 	public void readFrom(InputStream inputStream) {
 		pendingCertAnnouncement = PendingCertAnnouncement.getInstance(ASN1StreamUtils.readFrom(inputStream));
 	}
+
 }

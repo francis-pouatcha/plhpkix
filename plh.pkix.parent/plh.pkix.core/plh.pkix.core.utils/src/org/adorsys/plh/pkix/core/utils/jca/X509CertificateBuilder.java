@@ -1,19 +1,19 @@
 package org.adorsys.plh.pkix.core.utils.jca;
 
 import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyUsageUtils;
-import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.UUIDUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedValidationException;
+import org.adorsys.plh.pkix.core.utils.store.PlhPkixCoreMessages;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -27,9 +27,8 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.i18n.ErrorBundle;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 /**
  * Build a certificate based on information passed to this object.
@@ -45,11 +44,11 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
  */
 public class X509CertificateBuilder {
 
-	private static Provider provider = ProviderUtils.bcProvider;
-
 	private boolean ca;
 
 	private X500Name subjectDN;
+	
+	private boolean subjectOnlyInAlternativeName;
 
 	private PublicKey subjectPublicKey;
 
@@ -91,18 +90,32 @@ public class X509CertificateBuilder {
 			}
 		}
 		
-		if(subjectPublicKey==null)throw new IllegalArgumentException("Missing subject public key");
-		if(subjectDN==null) throw new IllegalArgumentException("Missing subject distinguished name");
-		if(notBefore==null) throw new IllegalArgumentException("Missing validity date notBefore");
-		if(notAfter==null) throw new IllegalArgumentException("Missing validity date not after");
+		List<String> errorKeys = new ArrayList<String>();
+		if(subjectPublicKey==null) errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_missing_subject_publicKey);
+		// to set subject to empty, set subjectOnlyInAltName to true. See rfc 5280 then subject alt name must be set
+		if(subjectDN==null) errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_missing_subject_DN);
+		if(notBefore==null) errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_missing_validity_date_notBefore);
+		if(notAfter==null) errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_missing_validity_date_notAfter);
+		if(!errorKeys.isEmpty()){
+			List<ErrorBundle> errors = new ArrayList<ErrorBundle>();
+            ErrorBundle haedMsg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.X509CertificateBuilder_missing_inputs);
+            errors.add(haedMsg);
+			for (String errorKey : errorKeys) {
+	            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),errorKey);
+	            errors.add(msg);
+			}
+            throw new PlhUncheckedValidationException(errors);
+		}
 
 		X500Name issuerDN = null;
 		BasicConstraints basicConstraints = null;
-		if(issuerCertificate==null){// self signed certificate
+		if(issuerCertificate==null){
 			issuerDN = subjectDN;
 			if(ca){
 				// self signed ca certificate
 				basicConstraints = new BasicConstraints(true);
+				subjectOnlyInAlternativeName = false;// in ca case, subject must subject must be set
 			} else {
 				basicConstraints = new BasicConstraints(false);
 			}
@@ -110,15 +123,31 @@ public class X509CertificateBuilder {
 			// check is issuerCertificate is ca certificate
 			Extension basicConstraintsExtension = issuerCertificate.getExtension(X509Extension.basicConstraints);
 			BasicConstraints issuerBasicConstraints = BasicConstraints.getInstance(basicConstraintsExtension.getParsedValue());
-			if(!issuerBasicConstraints.isCA()) throw new IllegalArgumentException("Issuer certificate is not for ca");
+			if(!issuerBasicConstraints.isCA())
+				errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_issuerCert_notCaCert);
 			
 			if(!KeyUsageUtils.hasAllKeyUsage(issuerCertificate, KeyUsage.keyCertSign))
-				throw new IllegalArgumentException("Issuer certificate is not for key signature");	
+				errorKeys.add(PlhPkixCoreMessages.X509CertificateBuilder_issuerCert_notForCertSign);
+
+			if(!errorKeys.isEmpty()){
+				List<ErrorBundle> errors = new ArrayList<ErrorBundle>();
+	            ErrorBundle haedMsg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+	            		PlhPkixCoreMessages.X509CertificateBuilder_issuerCert_invalid);
+	            errors.add(haedMsg);
+				for (String errorKey : errorKeys) {
+		            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),errorKey);
+		            errors.add(msg);
+				}
+				
+	            throw new PlhUncheckedValidationException(errors);
+			}
 
 			// prepare inputs
 			issuerDN = issuerCertificate.getSubject();
 
 			if(ca){// ca signing another ca certificate
+				subjectOnlyInAlternativeName = false;// in ca case, subject must subject must be set
+				// ca certificate must carry a subject
 				BigInteger pathLenConstraint = issuerBasicConstraints.getPathLenConstraint();
 				if(pathLenConstraint==null){
 					pathLenConstraint = BigInteger.ONE;
@@ -133,19 +162,17 @@ public class X509CertificateBuilder {
 		}
 
 		BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
-
-		X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, subjectDN,subjectPublicKey);
-
-		JcaX509ExtensionUtils extUtils;
-		try {
-			extUtils = new JcaX509ExtensionUtils();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
+		X509v3CertificateBuilder v3CertGen = null;
+		if(subjectOnlyInAlternativeName && subjectAltNames!=null){
+			v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, new X500Name("cn=''"),subjectPublicKey);
+		} else {
+			v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, subjectDN,subjectPublicKey);
 		}
+		JcaX509ExtensionUtils extUtils = V3CertificateUtils.getJcaX509ExtensionUtils();
 
 		try {
 			v3CertGen.addExtension(X509Extension.basicConstraints,true, basicConstraints);
-
+			
 			v3CertGen.addExtension(X509Extension.subjectKeyIdentifier,false, 
 					extUtils.createSubjectKeyIdentifier(subjectPublicKey));
 			
@@ -162,8 +189,14 @@ public class X509CertificateBuilder {
 						true, new KeyUsage(this.keyUsage));
 			}
 
-			if(subjectAltNames!=null)
-				v3CertGen.addExtension(X509Extension.subjectAlternativeName, false, subjectAltNames);
+			// complex rules for subject alternative name. See rfc5280
+			if(subjectAltNames!=null){
+				if(subjectOnlyInAlternativeName){
+					v3CertGen.addExtension(X509Extension.subjectAlternativeName, true, subjectAltNames);
+				} else {
+					v3CertGen.addExtension(X509Extension.subjectAlternativeName, false, subjectAltNames);
+				}
+			}
 			
 			if(authorityInformationAccess!=null)
 				v3CertGen.addExtension(X509Extension.authorityInfoAccess, false, authorityInformationAccess);
@@ -172,13 +205,7 @@ public class X509CertificateBuilder {
 			throw new IllegalStateException(e);
 		}
 
-		ContentSigner signer;
-		try {
-			signer = new JcaContentSignerBuilder("SHA1WithRSA")
-					.setProvider(provider).build(issuerPrivatekey);
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		}
+		ContentSigner signer = V3CertificateUtils.getContentSigner(issuerPrivatekey);
 
 		return v3CertGen.build(signer);
 
@@ -279,4 +306,11 @@ public class X509CertificateBuilder {
 		this.authorityInformationAccess = authorityInformationAccess;
 		return this;
 	}
+
+	public X509CertificateBuilder withSubjectOnlyInAlternativeName(boolean subjectOnlyInAlternativeName) {
+		this.subjectOnlyInAlternativeName = subjectOnlyInAlternativeName;
+		return this;
+	}
+	
+	
 }

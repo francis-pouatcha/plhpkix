@@ -69,7 +69,7 @@ public class EndEntityRepositoryTest {
 			.withPrivateKeyHolder(fpPrivateKeyHolder)
 			.withCertificateStore(fpCertificateStore)
 			.build0();
-		X509CertificateHolder fpSubjectCertificate = fpCertificateStore.getCertificate(fpEndEntityX500Name);
+		X509CertificateHolder fpSubjectCertificate = fpCertificateStore.getX509JavaCertificate(fpEndEntityX500Name);
 		endEntityCertRepository.storeEndEntityCert(fpSubjectCertificate);
 		PrivateKey fpPrivateKey = fpPrivateKeyHolder.getPrivateKey(fpSubjectCertificate);
 		List<EndEntityCert> fps = endEntityCertRepository.findEndEntityCertBySubjectName(fpEndEntityX500Name);
@@ -83,7 +83,7 @@ public class EndEntityRepositoryTest {
 			.withPrivateKeyHolder(ssPrivateKeyHolder)
 			.withCertificateStore(ssCertificateStore )
 			.build0();
-		X509CertificateHolder ssSubjectCertificate = ssCertificateStore.getCertificate(ssEndEntityX500Name);
+		X509CertificateHolder ssSubjectCertificate = ssCertificateStore.getX509JavaCertificate(ssEndEntityX500Name);
 		endEntityCertRepository.storeEndEntityCert(ssSubjectCertificate);
 		List<EndEntityCert> sss = endEntityCertRepository.findEndEntityCertBySubjectName(ssEndEntityX500Name);
 		Assert.assertTrue(sss.size()==1);

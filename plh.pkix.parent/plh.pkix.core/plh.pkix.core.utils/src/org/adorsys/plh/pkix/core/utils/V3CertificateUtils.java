@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SignatureException;
@@ -12,8 +13,10 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
 import org.adorsys.plh.pkix.core.utils.store.PlhPkixCoreMessages;
@@ -27,13 +30,15 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.i18n.ErrorBundle;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 public class V3CertificateUtils {
 
-	public static X509Certificate getCertificate(X509CertificateHolder holder,
-			Provider provider) {
+	public static X509Certificate getX509JavaCertificate(X509CertificateHolder holder) {
 		try {
-			return new JcaX509CertificateConverter().setProvider(provider)
+			return new JcaX509CertificateConverter().setProvider(ProviderUtils.bcProvider)
 					.getCertificate(holder);
 		} catch (CertificateException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
@@ -42,7 +47,9 @@ public class V3CertificateUtils {
             throw new PlhUncheckedException(msg);
 		}
 	}
-	
+	public static org.bouncycastle.asn1.x509.Certificate getX509BCCertificate(X509CertificateHolder certHolder){
+		return certHolder.toASN1Structure();
+	}	
 	public static X509CertificateHolder getX509CertificateHolder(Certificate certificate){
 		try {
 			return new X509CertificateHolder(certificate.getEncoded());
@@ -57,6 +64,18 @@ public class V3CertificateUtils {
                     new Object[] { e.getMessage(), e , e.getClass().getName()});
             throw new PlhUncheckedException(msg, e);
 		}
+	}
+
+	public static X509Certificate getX509JavaCertificate(Certificate certificate) {
+		return getX509JavaCertificate(getX509CertificateHolder(certificate));
+	}
+	
+	public static List<X509Certificate> convert(Certificate...certificates){
+		List<X509Certificate> list = new ArrayList<X509Certificate>();
+		for (Certificate certificate : certificates) {
+			list.add(getX509JavaCertificate(certificate));
+		}
+		return list;
 	}
 	
 	public static void checkSelfSigned(X509CertificateHolder certificateHolder, 
@@ -78,7 +97,7 @@ public class V3CertificateUtils {
 		if (!ckecked){
 			throw new SecurityException("both certificate not matching");
 		}
-		X509Certificate certificate = getCertificate(certificateHolder, provider);
+		X509Certificate certificate = getX509JavaCertificate(certificateHolder);
 		try {
 			certificate.verify(certificate.getPublicKey());
 		} catch (InvalidKeyException e) {
@@ -124,4 +143,28 @@ public class V3CertificateUtils {
             throw new PlhUncheckedException(msg, e);
 		}
 	}
+		
+	public static JcaX509ExtensionUtils getJcaX509ExtensionUtils(){
+		try {
+			return new JcaX509ExtensionUtils();
+		} catch (NoSuchAlgorithmException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		}
+	}
+	
+	public static ContentSigner getContentSigner(PrivateKey issuerPrivatekey){
+		try {
+			return new JcaContentSignerBuilder("SHA1WithRSA")
+					.setProvider(ProviderUtils.bcProvider).build(issuerPrivatekey);
+		} catch (OperatorCreationException e) {
+            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+            throw new PlhUncheckedException(msg, e);
+		}
+	}
+	
 }

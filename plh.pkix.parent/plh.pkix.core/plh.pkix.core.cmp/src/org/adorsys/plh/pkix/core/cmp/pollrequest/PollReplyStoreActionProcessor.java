@@ -43,13 +43,17 @@ public class PollReplyStoreActionProcessor implements
 		BigInteger certReqIdBigInteger = pollRepContent.getCertReqId().getPositiveValue();
 		PendingRequestData pendingRequestData = pendingRequests.loadPendingRequest(certReqIdBigInteger);
 		if(pendingRequestData==null){
-			PendingRequest pendingRequest = new PendingRequest(certReqId, pkiMessage, nextPoll);
-			pendingRequest.setPollRepMessage(pkiMessage);
+			PendingRequest pendingRequest = new PendingRequest(certReqId, pkiMessage, nextPoll, pkiMessage, null, null);
 			pendingRequestData = new PendingRequestData(pendingRequest);
 		} else {
 			PendingRequest pendingRequest = pendingRequestData.getPendingRequest();
-			pendingRequest.setNextPoll(nextPoll);
-			pendingRequest.setPollRepMessage(pkiMessage);
+			pendingRequest = new PendingRequest(
+					pendingRequest.getCertReqId(), 
+					pendingRequest.getPkiMessage(), 
+					nextPoll, pkiMessage, 
+					pendingRequest.getPollReqMessage(), 
+					pendingRequest.getDisposed());
+			pendingRequestData = new PendingRequestData(pendingRequest);
 		}
 		pendingRequests.storePollRequestHolder(certReqIdBigInteger, pendingRequestData);
 	}

@@ -5,17 +5,11 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertStore;
-import java.security.cert.Certificate;
 import java.security.cert.CollectionCertStoreParameters;
 import java.security.cert.PKIXParameters;
-import java.security.cert.TrustAnchor;
 import java.security.cert.X509CRL;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 
@@ -23,18 +17,7 @@ public abstract class PKIXParametersFactory {
 
 	public static PKIXParameters makeParams(KeyStoreWraper keystoreWraper) throws KeyStoreException, InvalidAlgorithmParameterException{
 		// add self signed certificate
-		Set<TrustAnchor> hashSet = new HashSet<TrustAnchor>();
-		Enumeration<String> aliases = keystoreWraper.aliases();
-		while (aliases.hasMoreElements()) {
-			String alias = aliases.nextElement();
-			if (keystoreWraper.isKeyEntry(alias) || keystoreWraper.isCertificateEntry(alias)) {
-				Certificate cert = keystoreWraper.getCertificate(alias);
-				if(cert==null) continue;
-				if (cert instanceof X509Certificate)
-					hashSet.add(new TrustAnchor((X509Certificate) cert, null));
-			}
-		}
-		return new PKIXParameters(hashSet);
+		return new PKIXParameters(keystoreWraper.getTrustAnchors());
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })

@@ -61,7 +61,7 @@ public class InitializationRequestBuilder {
                                                   .setBody(new PKIBody(PKIBody.TYPE_INIT_REQ, certReqMessages))
                                                   .addCMPCertificate(certificate)
                                                   .setMessageTime(new Date())
-                                                  .setSenderKID(KeyIdUtils.getSubjectKeyIdentifierAsByteString(certificate))
+                                                  .setSenderKID(KeyIdUtils.readSubjectKeyIdentifierAsByteString(certificate))
 											      .setSenderNonce(UUIDUtils.newUUIDAsBytes())
 											      .setTransactionID(UUIDUtils.newUUIDAsBytes())
                                                   .build(senderSigner);

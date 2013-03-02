@@ -82,7 +82,19 @@ public class PendingRequest extends ASN1Object {
         this.nextPoll = nextPoll;
     }
 	
-    /**
+    public PendingRequest(ASN1Integer certReqId, PKIMessage pkiMessage,
+			DERGeneralizedTime nextPoll, PKIMessage pollRepMessage,
+			PKIMessage pollReqMessage, DERGeneralizedTime disposed) {
+		super();
+		this.certReqId = certReqId;
+		this.pkiMessage = pkiMessage;
+		this.nextPoll = nextPoll;
+		this.pollRepMessage = pollRepMessage;
+		this.pollReqMessage = pollReqMessage;
+		this.disposed = disposed;
+	}
+
+	/**
      * <pre>
      * PendingRequestData ::= SEQUENCE {
      * 					certReqId			ASN1Integer
@@ -122,7 +134,8 @@ public class PendingRequest extends ASN1Object {
 		return certReqId;
 	}
 
-	public void setCertReqId(ASN1Integer certReqId) {
+	@SuppressWarnings("unused")
+	private final void setCertReqId(ASN1Integer certReqId) {
 		this.certReqId = certReqId;
 	}
 
@@ -130,7 +143,8 @@ public class PendingRequest extends ASN1Object {
 		return pkiMessage;
 	}
 
-	public void setPkiMessage(PKIMessage pkiMessage) {
+	@SuppressWarnings("unused")
+	private final void setPkiMessage(PKIMessage pkiMessage) {
 		this.pkiMessage = pkiMessage;
 	}
 
@@ -138,7 +152,8 @@ public class PendingRequest extends ASN1Object {
 		return nextPoll;
 	}
 
-	public void setNextPoll(DERGeneralizedTime nextPoll) {
+	@SuppressWarnings("unused")
+	private final void setNextPoll(DERGeneralizedTime nextPoll) {
 		this.nextPoll = nextPoll;
 	}
 
@@ -146,7 +161,8 @@ public class PendingRequest extends ASN1Object {
 		return pollRepMessage;
 	}
 
-	public void setPollRepMessage(PKIMessage pollRepMessage) {
+	@SuppressWarnings("unused")
+	private final void setPollRepMessage(PKIMessage pollRepMessage) {
 		this.pollRepMessage = pollRepMessage;
 	}
 
@@ -154,7 +170,8 @@ public class PendingRequest extends ASN1Object {
 		return pollReqMessage;
 	}
 
-	public void setPollReqMessage(PKIMessage pollReqMessage) {
+	@SuppressWarnings("unused")
+	private final void setPollReqMessage(PKIMessage pollReqMessage) {
 		this.pollReqMessage = pollReqMessage;
 	}
 
@@ -162,7 +179,8 @@ public class PendingRequest extends ASN1Object {
 		return disposed;
 	}
 
-	public void setDisposed(DERGeneralizedTime disposed) {
+	@SuppressWarnings("unused")
+	private final void setDisposed(DERGeneralizedTime disposed) {
 		this.disposed = disposed;
 	}
 }

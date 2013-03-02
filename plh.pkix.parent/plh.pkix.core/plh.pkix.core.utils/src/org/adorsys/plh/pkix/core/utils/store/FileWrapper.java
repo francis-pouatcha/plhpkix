@@ -59,4 +59,6 @@ public interface FileWrapper {
 	public void integrityCheck();
 	
 	public String[] list();
+	
+	public FileWrapper newChild(String name);
 }

@@ -81,4 +81,9 @@ public class FileWraperImpl implements FileWrapper{
 	public String[] list() {
 		return file.list();
 	}
+
+	@Override
+	public FileWrapper newChild(String name) {
+		return new FileWraperImpl(name, file, container);
+	}
 }

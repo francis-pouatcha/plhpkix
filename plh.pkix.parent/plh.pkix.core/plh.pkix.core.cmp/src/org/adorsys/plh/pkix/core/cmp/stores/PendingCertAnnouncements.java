@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +61,11 @@ public class PendingCertAnnouncements {
 		PendingCertAnnouncementData pendingCertAnnouncementData = loadPendingCertAnnouncement(serial);
 		if(pendingCertAnnouncementData==null) return;
 		PendingCertAnnouncement pendingCertAnnouncement = pendingCertAnnouncementData.getPendingCertAnnouncement();
-		pendingCertAnnouncement.setAnnouncedtTime(new DERGeneralizedTime(new Date()));
+		pendingCertAnnouncement = new PendingCertAnnouncement(pendingCertAnnouncement.getSerial(), 
+				pendingCertAnnouncement.getCertificateChain(),
+				pendingCertAnnouncement.getAnnouncementTime(), 
+				new DERGeneralizedTime(new Date()));
+		pendingCertAnnouncementData = new PendingCertAnnouncementData(pendingCertAnnouncement);
 		storePendingCertAnnouncement(serial, pendingCertAnnouncementData);
 	}
 
@@ -76,7 +81,7 @@ public class PendingCertAnnouncements {
 			fileWrapper.delete();
 	}
 	
-	public void loadPollRequests(){
+	public void loadPendingCertAnnouncements(){
 		pendingCertAnnouncementHandles.clear();
 		pendingCertAnnouncementCache.clear();
 		FileWrapper parent = fileContainer.newFile(dirRelativePath);
@@ -115,5 +120,9 @@ public class PendingCertAnnouncements {
 	public PendingCertAnnouncementData loadPendingCertAnnouncement(BigInteger certRequestId){
 		if(!pendingCertAnnouncementHandles.containsKey(certRequestId)) return null;
 		return loadPendingCertAnnouncement(pendingCertAnnouncementHandles.get(certRequestId));
+	}
+	
+	public Collection<PendingCertAnnouncementHandle> listHandles(){
+		return pendingCertAnnouncementHandles.values();
 	}
 }

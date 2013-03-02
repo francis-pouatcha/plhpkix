@@ -1,6 +1,6 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
-import java.security.PrivateKey;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,27 +13,23 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.mail.smime.SMIMEException;
 
 public class SMIMEBodyPartSignerEncryptor {
-
-	private List<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 	private X500Name issuerName;
 	private MimeBodyPart mimeBodyPart;
 	private List<X509Certificate> recipientX509Certificates = new ArrayList<X509Certificate>();
 	
 	private final BuilderChecker checker = new BuilderChecker(SMIMEBodyPartSignerEncryptor.class);
-	public MimeBodyPart signEncrypt(PrivateKey senderPrivateKey) throws
+	public MimeBodyPart signEncrypt(PrivateKeyEntry senderPrivateKeyEntry) throws
 			SMIMEException, MessagingException {
 		
 		checker.checkDirty()
-			.checkNull(senderPrivateKey,senderCertificateChain,issuerName,mimeBodyPart,
+			.checkNull(senderPrivateKeyEntry,issuerName,mimeBodyPart,
 					recipientX509Certificates)
-			.checkEmpty(senderCertificateChain)
 			.checkEmpty(recipientX509Certificates);
 
 		MimeBodyPart signedBodyPart = new SMIMEBodyPartSigner()
 			.withIssuerName(issuerName)
-			.withSenderCertificateChain(senderCertificateChain)
 			.withMimeBodyPart(mimeBodyPart)
-			.sign(senderPrivateKey);
+			.sign(senderPrivateKeyEntry);
 		signedBodyPart.setHeader("Content-Transfer-Encoding", "binary");
 		
 		return new SMIMEBodyPartEncryptor()
@@ -41,11 +37,7 @@ public class SMIMEBodyPartSignerEncryptor {
 			.withMimeBodyPart(signedBodyPart)
 			.encrypt();
 	}
-	public SMIMEBodyPartSignerEncryptor withSenderCertificateChain(
-			List<X509Certificate> senderCertificateChain) {
-		this.senderCertificateChain = senderCertificateChain;
-		return this;
-	}
+
 	public SMIMEBodyPartSignerEncryptor withIssuerName(X500Name issuerName) {
 		this.issuerName = issuerName;
 		return this;
