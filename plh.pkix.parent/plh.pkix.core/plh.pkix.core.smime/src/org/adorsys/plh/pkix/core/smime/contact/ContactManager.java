@@ -1,15 +1,17 @@
 package org.adorsys.plh.pkix.core.smime.contact;
 
+import java.security.KeyStore;
+import java.security.KeyStore.Entry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.exception.PlhCheckedException;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
-import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -22,42 +24,22 @@ import org.bouncycastle.cert.X509CertificateHolder;
  */
 public class ContactManager {
 
-	public static final String CONTACT_DIR_NAME = "contacts";
-	
-	private final FilesContainer container;
-	private final char[] storePass;
-	private final char[] keyPass;
-
 	// The cache. TODO replace with clean cache.
 	// The key is the keyStoreId, or the relative file name of the 
 	// keyStore in the scope of the FileContainer.
 	private final Map<String, KeyStoreWraper> contacts = new HashMap<String, KeyStoreWraper>();
 	
 	private final ContactIndex contactIndex;
-	private final FileWrapper contactDir;
+	private final FileWrapper contactsDir;
 
-	public ContactManager(FilesContainer container, char[] storePass, char[] keyPass) {
-		this.container = container;
-		this.storePass = storePass;
-		this.keyPass = keyPass;
-		contactDir = container.newFile(CONTACT_DIR_NAME);
+	public ContactManager(FileWrapper contactsDir) {
+		this.contactsDir = contactsDir;
 		contactIndex = new ContactIndex(this);
+		rescan();
 	}
 
 	public ContactIndex getContactIndex() {
 		return contactIndex;
-	}
-
-	public FileWrapper getContactDir() {
-		return contactDir;
-	}
-
-	public char[] getStorePass() {
-		return storePass;
-	}
-
-	public char[] getKeyPass() {
-		return keyPass;
 	}
 
 	/**
@@ -86,29 +68,56 @@ public class ContactManager {
 			keyStoreWraper = contacts.get(keyStoreId);
 		}
 		if(keyStoreWraper==null){
-			FileWrapper keyStoreFile = container.newFile(CONTACT_DIR_NAME, keyStoreId);
-			keyStoreWraper = new KeyStoreWraper(keyStoreFile, keyPass, storePass);
+			FileWrapper contactDir = contactsDir.newChild(keyStoreId);
+			keyStoreWraper = contactDir.getKeyStoreWraper();
 			contacts.put(keyStoreId, keyStoreWraper);
 		}
-		org.bouncycastle.asn1.x509.Certificate certificate = V3CertificateUtils.getX509BCCertificate(certHolder);
-		keyStoreWraper.importCertificates(certificate);
+		keyStoreWraper.importCertificates(V3CertificateUtils.getX509BCCertificate(certHolder));
 		for (String email : subjectEmails) {
 			contactIndex.addContact(email, keyStoreId);
 		}
 	}
 	
-	public KeyStoreWraper getContact(String email){
+	public List<KeyStore.Entry> getContact(String email){
 		String keyStoreId = contactIndex.getKeyStoreId(email);
 		if(keyStoreId==null) return null;
-		return loadKeyStore(keyStoreId);
+		return loadKeyStore(keyStoreId).entries();
 	}
 	
 	private KeyStoreWraper loadKeyStore(String keyStoreId){
 		KeyStoreWraper keyStoreWraper = contacts.get(keyStoreId);
 		if(keyStoreWraper!=null) return keyStoreWraper;
-		FileWrapper keyStoreFile = container.newFile(keyStoreId);
-		keyStoreWraper = new KeyStoreWraper(keyStoreFile, keyStoreId.toCharArray(), keyStoreId.toCharArray());
+		FileWrapper contactDir = contactsDir.newChild(keyStoreId);
+		keyStoreWraper = contactDir.getKeyStoreWraper();
 		contacts.put(keyStoreId, keyStoreWraper);
 		return keyStoreWraper;
+	}
+
+	private void rescan(){
+		contacts.clear();
+		String[] list = contactsDir.list();
+		if(list==null) return;
+		for (String keyStoreId : list) {
+			FileWrapper contactDir = contactsDir.newChild(keyStoreId);
+			if(!contactDir.exists()) continue;
+			KeyStoreWraper keyStoreWraper = contactDir.getKeyStoreWraper();
+			List<X509CertificateHolder> certificates = keyStoreWraper.loadCertificates();
+			for (X509CertificateHolder certHolder : certificates) {
+				List<String> subjectEmails = X500NameHelper.readSubjectEmails(certHolder);
+				for (String email : subjectEmails) {
+					contactIndex.addContact(email, keyStoreId);
+				}
+			}
+		}
+	}
+
+	public List<List<KeyStore.Entry>> listContacts() {
+		Set<String> keyStoreIds = contactIndex.listContacts();
+		List<List<Entry>> result = new ArrayList<List<Entry>>();
+		for (String keyStoreId : keyStoreIds) {
+			KeyStoreWraper keyStoreWraper = loadKeyStore(keyStoreId);
+			result.add(keyStoreWraper.entries());
+		}
+		return result;
 	}
 }

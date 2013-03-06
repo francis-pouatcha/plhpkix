@@ -6,11 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
-import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
-import org.bouncycastle.cert.X509CertificateHolder;
-
 /**
  * Simple index file of all contacts maintained by an end entity.
  * Each contact is represented by one or many records.
@@ -42,32 +37,10 @@ import org.bouncycastle.cert.X509CertificateHolder;
  */
 public class ContactIndex {
 	
-	private final ContactManager contactManager;
-	private final FileWrapper contacstDir;
 	private Map<String, String> email2KeyStoreId = new HashMap<String, String>();
 	private Map<String, List<String>> keyStoreId2Emails = new HashMap<String, List<String>>();
 	
 	public ContactIndex(ContactManager contactManager) {
-		this.contactManager = contactManager;
-		this.contacstDir = contactManager.getContactDir();
-		rescan();
-	}
-	
-	private void rescan(){
-		String[] list = contacstDir.list();
-		if(list==null) return;
-		for (String keyStoreId : list) {
-			FileWrapper newChild = contacstDir.newChild(keyStoreId);
-			if(!newChild.exists()) continue;
-			KeyStoreWraper keyStoreWraper = new KeyStoreWraper(newChild, contactManager.getKeyPass(), contactManager.getStorePass());
-			List<X509CertificateHolder> certificates = keyStoreWraper.loadCertificates();
-			for (X509CertificateHolder certHolder : certificates) {
-				List<String> subjectEmails = X500NameHelper.readSubjectEmails(certHolder);
-				for (String email : subjectEmails) {
-					addContact(email, keyStoreId);
-				}
-			}
-		}
 	}
 
 	public void addContact(String email, String keyStoreId){

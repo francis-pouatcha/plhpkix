@@ -39,7 +39,7 @@ public class PollRequestJob implements Runnable {
 			PKIMessage pendingPollRequestMessage = pendingPollRequest.getPkiMessage();
 			CMPMessenger cmpMessenger = actionContext.get(CMPMessenger.class);
 			try {
-				cmpMessenger.sendPollRequest(pendingPollRequestMessage);
+				cmpMessenger.send(pendingPollRequestMessage);
 				// set announced
 				pendingRequests.disposePendingRequest(pendingPollRequest.getCertReqId().getPositiveValue());
 			} catch(Exception ex){

@@ -205,7 +205,7 @@ public class X509CertificateBuilder {
 			throw new IllegalStateException(e);
 		}
 
-		ContentSigner signer = V3CertificateUtils.getContentSigner(issuerPrivatekey);
+		ContentSigner signer = V3CertificateUtils.getContentSigner(issuerPrivatekey,"SHA1WithRSA");
 
 		return v3CertGen.build(signer);
 

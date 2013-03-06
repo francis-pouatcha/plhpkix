@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
-import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 
@@ -22,15 +21,15 @@ import org.bouncycastle.asn1.DERGeneralizedTime;
  */
 public class PendingRequests {
 	
-	private static final String dirRelativePath = "pending_requests";
-	private final FilesContainer fileContainer;
+	private static final String DIRRELATIVEPATH = "pending_requests";
+	private final FileWrapper rootDir;
 	
 	private Map<BigInteger, PendingRequestHandle> pendingRequestHandles = new HashMap<BigInteger, PendingRequestHandle>();
 	private Map<BigInteger, PendingRequestData> pendingRequestCache = new HashMap<BigInteger, PendingRequestData>();
 	
 	
-	public PendingRequests(FilesContainer fileContainer) {
-		this.fileContainer = fileContainer;
+	public PendingRequests(FileWrapper parentDir) {
+		this.rootDir = parentDir.newChild(DIRRELATIVEPATH);
 	}
 
 	public void storePollRequestHolder(BigInteger certReqId, PendingRequestData pendingRequestData){
@@ -55,7 +54,7 @@ public class PendingRequests {
 			deletePendingRequest(certReqId);
 		}
 		PendingRequestHandle  pendingRequestHandle = new PendingRequestHandle(certReqId, nxtPl,disp);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingRequestHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingRequestHandle.getFileName());
 		OutputStream outputStream = fileWrapper.newOutputStream();
 		pendingRequestData.writeTo(outputStream);
 		IOUtils.closeQuietly(outputStream);
@@ -84,7 +83,7 @@ public class PendingRequests {
 		pendingRequestCache.remove(certReqId);
 			
 		PendingRequestHandle pendingRequestHandle = pendingRequestHandles.remove(certReqId);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingRequestHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingRequestHandle.getFileName());
 		
 		if(fileWrapper.exists())
 			fileWrapper.delete();
@@ -93,8 +92,7 @@ public class PendingRequests {
 	public void loadPollRequests(){
 		pendingRequestHandles.clear();
 		pendingRequestCache.clear();
-		FileWrapper parent = fileContainer.newFile(dirRelativePath);
-		String[] list = parent.list();
+		String[] list = rootDir.list();
 		for (String fileName : list) {
 			loadPendingRequestHandle(fileName);
 		}
@@ -109,7 +107,7 @@ public class PendingRequests {
 		if(pendingRequestCache.containsKey(certReqId))
 			return pendingRequestCache.get(certReqId);
 		
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath,pendingRequestHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingRequestHandle.getFileName());
 		if(!fileWrapper.exists()){
 			throw new IllegalArgumentException("Missing underlying file");
 		}

@@ -5,8 +5,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
 import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -16,15 +18,11 @@ import org.bouncycastle.util.encoders.Hex;
 public class KeyIdUtils {
     
     public static byte[] createPublicKeyIdentifierAsByteString(X509CertificateHolder certHldr){
-    	SubjectPublicKeyInfo subjectPublicKeyInfo = certHldr.getSubjectPublicKeyInfo();
-    	return createPublicKeyIdentifierAsByteString(subjectPublicKeyInfo);
-    }
-    
+    	return createPublicKeyIdentifierAsByteString(certHldr.getSubjectPublicKeyInfo());
+    }    
     public static String createPublicKeyIdentifierAsString(X509CertificateHolder certHldr){
-    	byte[] keyIdentifier = createPublicKeyIdentifierAsByteString(certHldr);
-    	return hexEncode(keyIdentifier);
+    	return hexEncode(createPublicKeyIdentifierAsByteString(certHldr));
     }
-    
     public static SubjectKeyIdentifier createPublicKeyIdentifier(PublicKey subjectPublicKey){
 		JcaX509ExtensionUtils extUtils;
 		try {
@@ -34,9 +32,7 @@ public class KeyIdUtils {
 		}
 		return extUtils.createSubjectKeyIdentifier(subjectPublicKey);
     }
-
     public static SubjectKeyIdentifier createPublicKeyIdentifier(SubjectPublicKeyInfo publicKeyInfo){
-
 		JcaX509ExtensionUtils extUtils;
 		try {
 			extUtils = new JcaX509ExtensionUtils();
@@ -45,12 +41,10 @@ public class KeyIdUtils {
 		}
 		return extUtils.createSubjectKeyIdentifier(publicKeyInfo);
     }
-
     public static byte[] createPublicKeyIdentifierAsByteString(PublicKey subjectPublicKey){
     	SubjectKeyIdentifier subjectKeyIdentifier = createPublicKeyIdentifier(subjectPublicKey);
 		return subjectKeyIdentifier.getKeyIdentifier();
     }
-
     public static byte[] createPublicKeyIdentifierAsByteString(SubjectPublicKeyInfo publicKeyInfo){
     	SubjectKeyIdentifier subjectKeyIdentifier = createPublicKeyIdentifier(publicKeyInfo);
     	return subjectKeyIdentifier.getKeyIdentifier();
@@ -65,51 +59,72 @@ public class KeyIdUtils {
     }
     
 
-    public static byte[] readAuthorityKeyIdentifierAsByteString(X509CertificateHolder certHldr){
+    public static AuthorityKeyIdentifier readAuthorityKeyIdentifier(X509CertificateHolder certHldr){
+    	if(certHldr==null)return null;
         Extension ext = certHldr.getExtension(Extension.authorityKeyIdentifier);
-
-        if (ext == null)
-        {
-        	throw new IllegalStateException("Expecting a valid authority key id");
-        }
+        if (ext == null)return null;
         ASN1Encodable value = ext.getParsedValue();
-        AuthorityKeyIdentifier authorityKeyIdentifier = AuthorityKeyIdentifier.getInstance(value);
-        byte[] keyIdentifier = authorityKeyIdentifier.getKeyIdentifier();
-        return keyIdentifier;
+        return AuthorityKeyIdentifier.getInstance(value);
     }
-
+    public static byte[] readAuthorityKeyIdentifierAsByteString(AuthorityKeyIdentifier authorityKeyIdentifier){
+    	return authorityKeyIdentifier==null?null:authorityKeyIdentifier.getKeyIdentifier();
+    }    
+    public static byte[] readAuthorityKeyIdentifierAsByteString(X509CertificateHolder certHldr){
+    	return readAuthorityKeyIdentifierAsByteString(readAuthorityKeyIdentifier(certHldr));
+    }
     public static String readAuthorityKeyIdentifierAsString(X509CertificateHolder certHldr){
-    	byte[] keyIdentifier = readAuthorityKeyIdentifierAsByteString(certHldr);
-    	return hexEncode(keyIdentifier);
+    	return hexEncode(readAuthorityKeyIdentifierAsByteString(certHldr));
     }
-
-    public static byte[] readSubjectKeyIdentifierAsByteString(X509CertificateHolder certHldr){
+	public static AuthorityKeyIdentifier readAuthorityKeyIdentifier(CertTemplate certTemplate) {
+		if(certTemplate==null)return null;
+    	Extensions extensions = certTemplate.getExtensions();
+    	if(extensions==null)return null;
+    	Extension ext = extensions.getExtension(Extension.authorityKeyIdentifier);
+    	if(ext==null) return null;
+        return AuthorityKeyIdentifier.getInstance(ext.getParsedValue());
+	}
+	public static String authorityKeyIdentifierToString(AuthorityKeyIdentifier authorityKeyIdentifier){
+    	return authorityKeyIdentifier==null?null:hexEncode(authorityKeyIdentifier.getKeyIdentifier());
+	}
+    
+    public static SubjectKeyIdentifier readSubjectKeyIdentifier(X509CertificateHolder certHldr) {
+    	if(certHldr==null)return null;
         Extension ext = certHldr.getExtension(Extension.subjectKeyIdentifier);
-
-        if (ext == null)
-        {
-            return MSOutlookKeyIdCalculator.calculateKeyId(certHldr.getSubjectPublicKeyInfo());
-        }
-
-        ASN1Encodable value = ext.getParsedValue();
-        SubjectKeyIdentifier subjectKeyIdentifier = SubjectKeyIdentifier.getInstance(value);
-    	return subjectKeyIdentifier.getKeyIdentifier();
+        if(ext==null) return null;
+        return SubjectKeyIdentifier.getInstance(ext.getParsedValue());
+	}
+    public static byte[] readSubjectKeyIdentifierAsByteString(X509CertificateHolder certHldr){
+        SubjectKeyIdentifier subjectKeyIdentifier = readSubjectKeyIdentifier(certHldr);
+    	return subjectKeyIdentifier==null?null:subjectKeyIdentifier.getKeyIdentifier();
     }
-    
     public static String readSubjectKeyIdentifierAsString(X509CertificateHolder certHldr){
-    	byte[] keyIdentifier = readSubjectKeyIdentifierAsByteString(certHldr);
-    	return KeyIdUtils.hexEncode(keyIdentifier);
+    	return KeyIdUtils.hexEncode(readSubjectKeyIdentifierAsByteString(certHldr));
     }
+    public static SubjectKeyIdentifier readSubjectKeyIdentifier(CertTemplate certTemplate) {
+    	if(certTemplate==null)return null;
+    	Extensions extensions = certTemplate.getExtensions();
+    	if(extensions==null)return null;
+    	Extension ext = extensions.getExtension(Extension.subjectKeyIdentifier);
+    	if(ext==null) return null;
+        return SubjectKeyIdentifier.getInstance(ext.getParsedValue());
+	}
     
-    public static String hexEncode(byte[] keyIdentifier){
+	public static String subjectKeyIdentifierToString(SubjectKeyIdentifier subjectKeyIdentifier) {
+		return subjectKeyIdentifier==null?null:KeyIdUtils.hexEncode(subjectKeyIdentifier.getKeyIdentifier());
+	}
+    
+	public static String hexEncode(byte[] keyIdentifier){
+		if(keyIdentifier==null) return null;
     	byte[] hexEncoded = Hex.encode(keyIdentifier);
     	String result = new String(hexEncoded).toUpperCase();
     	return result;    	
     }
     
     public static String readSerialNumberAsString(X509CertificateHolder certHldr){
+    	if(certHldr==null) return null;
     	BigInteger serialNumber = certHldr.getSerialNumber();
     	return serialNumber.toString(16).toUpperCase();
     }
+
     
 }

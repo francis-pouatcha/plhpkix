@@ -11,16 +11,16 @@ import java.util.List;
 import org.adorsys.plh.pkix.core.cmp.PlhCMPSystem;
 import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementBuilder;
 import org.adorsys.plh.pkix.core.cmp.certann.CertificateAnnouncementHolder;
-import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationReplyValidationProcessor;
-import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestBuilder;
-import org.adorsys.plh.pkix.core.cmp.certrequest.CertificationRequestValidationProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.ca.CertificationRequestValidationProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.endentity.CertificationReplyValidationProcessor;
+import org.adorsys.plh.pkix.core.cmp.certrequest.endentity.CertificationRequestInitActionExecutor;
 import org.adorsys.plh.pkix.core.cmp.fetch.FetchRequestTypesValue;
-import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationRequestHolder;
-import org.adorsys.plh.pkix.core.cmp.initrequest.InitializationResponseValidationActionProcessor;
+import org.adorsys.plh.pkix.core.cmp.initrequest.sender.InitializationRequestBuilder;
+import org.adorsys.plh.pkix.core.cmp.initrequest.sender.InitializationRequestHolder;
+import org.adorsys.plh.pkix.core.cmp.initrequest.sender.InitializationResponseValidationActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.message.PkiMessageConformity;
 import org.adorsys.plh.pkix.core.cmp.pollrequest.PollReplyValidationActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.pollrequest.PollRequestBuilder;
-import org.adorsys.plh.pkix.core.cmp.stores.InitializationRequestBuilder;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncements2;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingRequests;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingRequest;
@@ -185,7 +185,7 @@ public class CMPMessagingClient {
 		X509CertificateHolder subjectCert = certificateStore
 				.getCertificate(endEntityName);
 
-		PendingRequest certificationRequestHolder = new CertificationRequestBuilder()
+		PendingRequest certificationRequestHolder = new CertificationRequestInitActionExecutor()
 				.withCertAuthorityName(certAuthorityName)
 				.withSubjectName(endEntityName)
 				.withSubjectCert(subjectCert)

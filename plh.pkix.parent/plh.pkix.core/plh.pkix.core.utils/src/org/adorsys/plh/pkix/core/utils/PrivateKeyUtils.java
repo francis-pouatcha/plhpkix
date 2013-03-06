@@ -2,18 +2,15 @@ package org.adorsys.plh.pkix.core.utils;
 
 import java.io.IOException;
 import java.security.KeyFactory;
-import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
-import java.security.cert.CertificateEncodingException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
 import java.util.Iterator;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
@@ -87,16 +84,16 @@ public class PrivateKeyUtils {
 			throw new IllegalStateException(e);
 		}
 	}
-	
-	public static X509CertificateHolder getX509CertificateHolder(PrivateKeyEntry privateKeyEntry){
-		try {
-			return new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
-		} catch (CertificateEncodingException e) {
-			throw new IllegalArgumentException(e);
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
-		
-		
-	}
+//	
+//	public static X509CertificateHolder getX509CertificateHolder(PrivateKeyEntry privateKeyEntry){
+//		try {
+//			return new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
+//		} catch (CertificateEncodingException e) {
+//			throw new IllegalArgumentException(e);
+//		} catch (IOException e) {
+//			throw new IllegalStateException(e);
+//		}
+//		
+//		
+//	}
 }

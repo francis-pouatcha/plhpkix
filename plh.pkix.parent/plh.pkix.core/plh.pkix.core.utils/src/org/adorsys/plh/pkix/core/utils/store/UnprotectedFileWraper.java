@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.bouncycastle.cert.X509CertificateHolder;
+
 /**
  * @author francis
  *
@@ -89,5 +91,15 @@ public class UnprotectedFileWraper implements FileWrapper{
 	@Override
 	public FileWrapper newChild(String name) {
 		return new UnprotectedFileWraper(name, file, container);
+	}
+
+	@Override
+	public X509CertificateHolder loadKeyCertificate(String publicKeyIdentifier) {
+		return null;
+	}
+
+	@Override
+	public KeyStoreWraper getKeyStoreWraper() {
+		return null;
 	}
 }

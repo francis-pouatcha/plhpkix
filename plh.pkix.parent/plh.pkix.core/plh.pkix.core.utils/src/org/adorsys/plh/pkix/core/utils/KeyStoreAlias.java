@@ -149,6 +149,10 @@ public class KeyStoreAlias {
 		String publicKeyIdentifier = KeyIdUtils.createPublicKeyIdentifierAsString(subjectPublicKeyInfo);
 		return select(aliases, new KeyStoreAlias(publicKeyIdentifier, null,null,null));
 	}
+	public static final List<KeyStoreAlias> selectByPublicKeyIdentifier(Enumeration<String> aliases, byte[] publicKeyIdentifierBytes){
+		String publicKeyIdentifier = KeyIdUtils.hexEncode(publicKeyIdentifierBytes);
+		return select(aliases, new KeyStoreAlias(publicKeyIdentifier, null,null,null));
+	}
 
 	public static final List<KeyStoreAlias> selectBySubjectKeyIdentifier(Enumeration<String> aliases, X509CertificateHolder certificateHolder){
 		String subjectKeyIdHexFragment = KeyIdUtils.readSubjectKeyIdentifierAsString(certificateHolder);

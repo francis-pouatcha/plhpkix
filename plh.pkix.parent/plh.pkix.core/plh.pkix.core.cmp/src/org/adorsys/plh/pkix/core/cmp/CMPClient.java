@@ -12,14 +12,12 @@ import org.bouncycastle.cert.X509CertificateHolder;
  */
 public interface CMPClient {
 	/**
-	 * Registers this client with the server. This happens once.
-	 * As a result, the send back a certificate with client provided
-	 * information.
-	 * 
+	 * Initializes an account and registers the account with the server.
 	 * This certificate will be stored locally by the client and used for
 	 * any request to the server.
 	 */
-	public void register(String name, String email);	
+	public void register(String userName, String emails, char[] accountStorePass,
+			char[] accountKeyPass);
 	/**
 	 * Request the certification authority to certify this client. Any oder 
 	 * client can be considered a certification authority. The self signed

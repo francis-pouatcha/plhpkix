@@ -12,4 +12,5 @@ Require-Bundle: plh.pkix.core.utils;bundle-version="0.0.1",
  org.eclipse.osgi;bundle-version="3.9.0"
 Export-Package: org.adorsys.plh.pkix.core.smime.contact,
  org.adorsys.plh.pkix.core.smime.engines,
+ org.adorsys.plh.pkix.core.smime.store,
  org.adorsys.plh.pkix.core.smime.utils

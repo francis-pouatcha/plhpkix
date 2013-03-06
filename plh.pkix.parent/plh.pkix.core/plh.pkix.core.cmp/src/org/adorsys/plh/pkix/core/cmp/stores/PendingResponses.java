@@ -8,20 +8,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
-import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 
 public class PendingResponses {
 	
-	private static final String dirRelativePath = "pending_requests";
-	private final FilesContainer fileContainer;
+	private static final String DIRRELATIVEPATH = "pending_responses";
+	private final FileWrapper rootDir;
 	
 	private Map<String, PendingResponseHandle> pendingResponseHandles = new HashMap<String, PendingResponseHandle>();
 	private Map<String, PendingResponseData> pendingResponseCache = new HashMap<String, PendingResponseData>();
 	
-	public PendingResponses(FilesContainer fileContainer) {
-		this.fileContainer = fileContainer;
+	public PendingResponses(FileWrapper parentDir) {
+		rootDir = parentDir.newChild(DIRRELATIVEPATH);
 	}
 
 	public void storePendingResponse(String transactionID, PendingResponseData pendingResponseData){
@@ -47,7 +46,7 @@ public class PendingResponses {
 		}
 
 		PendingResponseHandle pendingResponseHandle = new PendingResponseHandle(transactionID, respT, delT);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingResponseHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingResponseHandle.getFileName());
 		OutputStream outputStream = fileWrapper.newOutputStream();
 		pendingResponseData.writeTo(outputStream);
 		IOUtils.closeQuietly(outputStream);
@@ -70,7 +69,7 @@ public class PendingResponses {
 		pendingResponseCache.remove(transactionID);
 			
 		PendingResponseHandle pendingResponseHandle = pendingResponseHandles.remove(transactionID);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingResponseHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingResponseHandle.getFileName());
 		
 		if(fileWrapper.exists())
 			fileWrapper.delete();
@@ -79,8 +78,7 @@ public class PendingResponses {
 	public void loadPollRequests(){
 		pendingResponseHandles.clear();
 		pendingResponseCache.clear();
-		FileWrapper parent = fileContainer.newFile(dirRelativePath);
-		String[] list = parent.list();
+		String[] list = rootDir.list();
 		for (String fileName : list) {
 			loadPendingResponseHandle(fileName);
 		}
@@ -95,7 +93,7 @@ public class PendingResponses {
 		if(pendingResponseCache.containsKey(transactionID))
 			return pendingResponseCache.get(transactionID);
 		
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath,pendingResponseHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingResponseHandle.getFileName());
 		if(!fileWrapper.exists()){
 			throw new IllegalArgumentException("Missing underlying file");
 		}

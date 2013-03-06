@@ -14,8 +14,11 @@ import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedDecryptorVerifier;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedSignerEncryptor;
 import org.adorsys.plh.pkix.core.smime.utils.CloseSubstreamsOutputStream;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
+import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
+import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
+import org.bouncycastle.cert.X509CertificateHolder;
 
 public class FileContainerImpl implements FilesContainer {
 
@@ -36,11 +39,6 @@ public class FileContainerImpl implements FilesContainer {
 	@Override
 	public FileWrapper newFile(String fileRelativePath) {
 		return new FileWraperImpl(fileRelativePath, rootDirectory, this);
-	}
-
-	@Override
-	public FileWrapper newFile(String dirRelativePath, String fileName) {		
-		return new FileWraperImpl(dirRelativePath+File.separator+fileName, rootDirectory, this);
 	}
 
 	public CMSStreamedDecryptorVerifier newDecryptor(File file) {
@@ -71,5 +69,11 @@ public class FileContainerImpl implements FilesContainer {
 		CloseSubstreamsOutputStream closeSubstreamsOutputStream = new CloseSubstreamsOutputStream(signingEncryptingOutputStream);
 		closeSubstreamsOutputStream.addSubStream(signedEncryptedOutputStream);
 		return closeSubstreamsOutputStream;
+	}
+
+	@Override
+	public String getPublicKeyIdentifier() {
+		X509CertificateHolder certHldr = V3CertificateUtils.getX509CertificateHolder(containerPrivateKeyEntry.getCertificate());
+		return KeyIdUtils.createPublicKeyIdentifierAsString(certHldr);
 	}
 }

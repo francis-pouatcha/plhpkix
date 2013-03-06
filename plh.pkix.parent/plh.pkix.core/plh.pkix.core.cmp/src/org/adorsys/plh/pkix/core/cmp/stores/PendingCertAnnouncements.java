@@ -10,21 +10,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
-import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 
 public class PendingCertAnnouncements {
 	
-	private static final String dirRelativePath = "pending_requests";
-	private final FilesContainer fileContainer;
+	private static final String DIR_NAME = "pending_announcements";
+	private final FileWrapper rootDir;
 	
 	private Map<BigInteger, PendingCertAnnouncementHandle> pendingCertAnnouncementHandles = new HashMap<BigInteger, PendingCertAnnouncementHandle>();
 	private Map<BigInteger, PendingCertAnnouncementData> pendingCertAnnouncementCache = new HashMap<BigInteger, PendingCertAnnouncementData>();
 	
 	
-	public PendingCertAnnouncements(FilesContainer fileContainer) {
-		this.fileContainer = fileContainer;
+	public PendingCertAnnouncements(FileWrapper parentDir) {
+		this.rootDir = parentDir.newChild(DIR_NAME);
 	}
 
 	public void storePendingCertAnnouncement(BigInteger serial, PendingCertAnnouncementData pendingCertAnnouncementData){
@@ -49,7 +48,7 @@ public class PendingCertAnnouncements {
 			deletePendingCertAnnouncement(serial);
 		}
 		PendingCertAnnouncementHandle  pendingCertAnnouncementHandle = new PendingCertAnnouncementHandle(serial, antime,andTime);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingCertAnnouncementHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingCertAnnouncementHandle.getFileName());
 		OutputStream outputStream = fileWrapper.newOutputStream();
 		pendingCertAnnouncementData.writeTo(outputStream);
 		IOUtils.closeQuietly(outputStream);
@@ -75,7 +74,7 @@ public class PendingCertAnnouncements {
 		pendingCertAnnouncementCache.remove(serial);
 			
 		PendingCertAnnouncementHandle pendingCertAnnouncementHandle = pendingCertAnnouncementHandles.remove(serial);
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath, pendingCertAnnouncementHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingCertAnnouncementHandle.getFileName());
 		
 		if(fileWrapper.exists())
 			fileWrapper.delete();
@@ -84,8 +83,7 @@ public class PendingCertAnnouncements {
 	public void loadPendingCertAnnouncements(){
 		pendingCertAnnouncementHandles.clear();
 		pendingCertAnnouncementCache.clear();
-		FileWrapper parent = fileContainer.newFile(dirRelativePath);
-		String[] list = parent.list();
+		String[] list = rootDir.list();
 		for (String fileName : list) {
 			loadPendingCertAnnouncementHandle(fileName);
 		}
@@ -100,7 +98,7 @@ public class PendingCertAnnouncements {
 		if(pendingCertAnnouncementCache.containsKey(serial))
 			return pendingCertAnnouncementCache.get(serial);
 		
-		FileWrapper fileWrapper = fileContainer.newFile(dirRelativePath,pendingCertAnnouncementHandle.getFileName());
+		FileWrapper fileWrapper = rootDir.newChild(pendingCertAnnouncementHandle.getFileName());
 		if(!fileWrapper.exists()){
 			throw new IllegalArgumentException("Missing underlying file");
 		}

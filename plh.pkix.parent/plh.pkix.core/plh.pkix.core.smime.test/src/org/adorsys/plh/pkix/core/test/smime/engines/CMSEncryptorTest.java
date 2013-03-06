@@ -4,11 +4,11 @@ import java.io.File;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.UUID;
 
 import org.adorsys.plh.pkix.core.smime.engines.CMSDecryptor;
 import org.adorsys.plh.pkix.core.smime.engines.CMSEncryptor;
 import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
-import org.adorsys.plh.pkix.core.utils.KeyStoreAlias;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
@@ -20,17 +20,17 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class CMSEncryptorTest {
-	private X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz");
+	private X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz", UUID.randomUUID().toString());
 
 	@Test
 	public void test() throws Exception {
 
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		String keyAlias = new KeyPairBuilder()
+		X509CertificateHolder messageKeyCertificate = new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(new KeyStoreAlias(keyAlias));
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messageKeyCertificate);
 		X509CertificateHolder subjectCertificate = new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
 		X509Certificate x509Certificate = V3CertificateUtils.getX509JavaCertificate(subjectCertificate);
 

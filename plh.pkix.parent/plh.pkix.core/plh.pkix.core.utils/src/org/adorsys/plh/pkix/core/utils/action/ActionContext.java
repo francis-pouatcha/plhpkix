@@ -49,6 +49,10 @@ public class ActionContext {
 		if(name==null) name = klass.getName();
 		map.put(name, object);
 	}
+
+	public <T> void put(Class<T> klass, T object){
+		put(klass, klass.getName(), object);
+	}
 	
 	public <T> boolean contains(Class<T> klass, String name){
 		if(name==null) name=klass.getName();

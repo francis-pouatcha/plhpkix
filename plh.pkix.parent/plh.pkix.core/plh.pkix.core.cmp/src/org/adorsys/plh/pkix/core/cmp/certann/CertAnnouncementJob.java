@@ -53,7 +53,7 @@ public class CertAnnouncementJob implements Runnable{
 				.build(privateKeyEntry);
 			CMPMessenger cmpMessenger = actionContext.get(CMPMessenger.class);
 			try {
-				cmpMessenger.announceCertificate(certAnnouncementMessage);
+				cmpMessenger.send(certAnnouncementMessage);
 				// set announced
 				setAcnnounced(pendingCertAnnouncement, pendingCertAnnouncements);				
 			} catch(Exception ex){

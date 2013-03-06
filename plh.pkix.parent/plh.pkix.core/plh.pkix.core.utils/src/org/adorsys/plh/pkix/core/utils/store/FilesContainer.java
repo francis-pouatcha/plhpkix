@@ -15,6 +15,12 @@ public interface FilesContainer {
 	 * @return
 	 */
 	public FileWrapper newFile(String fileRelativePath);
-
-	public FileWrapper newFile(String dirRelativePath, String fileName);
+	
+	/**
+	 * Returns the public key identifier of the key pair used to 
+	 * encrypt files in this container.
+	 * 
+	 * @return
+	 */
+	public String getPublicKeyIdentifier();
 }

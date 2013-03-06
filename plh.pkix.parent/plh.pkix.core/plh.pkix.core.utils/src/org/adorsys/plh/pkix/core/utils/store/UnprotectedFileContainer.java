@@ -16,7 +16,7 @@ public class UnprotectedFileContainer implements FilesContainer {
 	}
 
 	@Override
-	public FileWrapper newFile(String dirRelativePath, String fileName) {
-		return new UnprotectedFileWraper(dirRelativePath+File.separator+fileName, rootDir, this);
+	public String getPublicKeyIdentifier() {
+		return null;
 	}
 }

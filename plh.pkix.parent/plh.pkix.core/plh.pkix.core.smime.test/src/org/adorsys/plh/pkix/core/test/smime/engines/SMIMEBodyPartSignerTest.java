@@ -11,12 +11,12 @@ import java.security.KeyStore.PrivateKeyEntry;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import javax.mail.internet.MimeBodyPart;
 
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartSigner;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartVerifier;
-import org.adorsys.plh.pkix.core.utils.KeyStoreAlias;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
@@ -24,20 +24,21 @@ import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class SMIMEBodyPartSignerTest {
 
-	static X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz");
+	private X500Name subjectX500Name = X500NameHelper.makeX500Name("francis", "francis@plhtest.biz", UUID.randomUUID().toString());
 	@Test
 	public void test() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		String keyAlias = new KeyPairBuilder()
+		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(new KeyStoreAlias(keyAlias));
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
 
 		ArrayList<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 		Certificate[] certificateChain = privateKeyEntry.getCertificateChain();
@@ -93,11 +94,11 @@ public class SMIMEBodyPartSignerTest {
 	@Test
 	public void testOI() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		String keyAlias = new KeyPairBuilder()
+		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(new KeyStoreAlias(keyAlias));
+		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
 
 		ArrayList<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 		Certificate[] certificateChain = privateKeyEntry.getCertificateChain();

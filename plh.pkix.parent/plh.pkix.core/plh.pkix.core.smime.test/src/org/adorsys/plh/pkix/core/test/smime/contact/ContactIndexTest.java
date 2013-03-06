@@ -8,16 +8,20 @@ import java.util.Set;
 
 import junit.framework.Assert;
 
-import org.adorsys.plh.pkix.core.smime.contact.ContactManagerHolder;
+import org.adorsys.plh.pkix.core.smime.contact.AccountManager;
 import org.adorsys.plh.pkix.core.smime.store.FileContainerImpl;
+import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.exception.PlhCheckedException;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
+import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.store.UnprotectedFileContainer;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -32,16 +36,14 @@ public class ContactIndexTest {
 	
 	@Test
 	public void test() throws CertificateException, KeyStoreException, PlhCheckedException {
-		// 2. convenience data sharing
-//		Map<String, ContactManagerHolder> contactanagerHolders = new HashMap<String, ContactManagerHolder>();
 
 		// 1. Generate key pair
-		ContactManagerHolder francisContactManager = createContactManager("francis", "Francis Pouatcha", "fpo@biz.com", "Francis Pouatcha Container Key Pass".toCharArray(), "Francis Pouatcha Container Store Pass".toCharArray());
-		ContactManagerHolder nadegeContactManager = createContactManager("nadege", "Nadege Pouatcha", "npa@biz.com", "Nadege Pouatcha Container Key Pass".toCharArray(), "Nadege Pouatcha Container Store Pass".toCharArray());
-		ContactManagerHolder sandroContactManager = createContactManager("sandro", "Sandro Sonntag", "sso@biz.com", "Sandro Sonntag Container Key Pass".toCharArray(), "Sandro Sonntag Container Store Pass".toCharArray());
+		AccountManager francisContactManager = createContactManager("francis", "Francis Pouatcha", "fpo@biz.com", "Francis Pouatcha Container Key Pass".toCharArray(), "Francis Pouatcha Container Store Pass".toCharArray());
+		AccountManager nadegeContactManager = createContactManager("nadege", "Nadege Pouatcha", "npa@biz.com", "Nadege Pouatcha Container Key Pass".toCharArray(), "Nadege Pouatcha Container Store Pass".toCharArray());
+		AccountManager sandroContactManager = createContactManager("sandro", "Sandro Sonntag", "sso@biz.com", "Sandro Sonntag Container Key Pass".toCharArray(), "Sandro Sonntag Container Store Pass".toCharArray());
 		
-		PrivateKeyEntry nadegePrivateKeyEntry = nadegeContactManager.getKeyStoreWraper().findAnyMessagePrivateKeyEntry();
-		PrivateKeyEntry sandroPrivateKeyEntry = sandroContactManager.getKeyStoreWraper().findAnyMessagePrivateKeyEntry();
+		PrivateKeyEntry nadegePrivateKeyEntry = nadegeContactManager.getAccountKeyStoreWraper().findAnyMessagePrivateKeyEntry();
+		PrivateKeyEntry sandroPrivateKeyEntry = sandroContactManager.getAccountKeyStoreWraper().findAnyMessagePrivateKeyEntry();
 		francisContactManager.getContactManager().addContact(V3CertificateUtils.getX509CertificateHolder(nadegePrivateKeyEntry.getCertificate()));
 		francisContactManager.getContactManager().addContact(V3CertificateUtils.getX509CertificateHolder(sandroPrivateKeyEntry.getCertificate()));
 
@@ -51,7 +53,7 @@ public class ContactIndexTest {
 		Assert.assertTrue(francisContacts.contains("sso@biz.com"));
 	}
 	
-	private ContactManagerHolder createContactManager(String dirName, String name, String  email, char[] containerKeyPass, char[] containerStorePass){
+	private AccountManager createContactManager(String dirName, String userName, String  email, char[] containerKeyPass, char[] containerStorePass){
 		File rootDir = new File(testDir, dirName);
 		FilesContainer keyStoreContainer = new UnprotectedFileContainer(rootDir);
 		KeyStoreWraper containerKeyStoreWraper = new KeyStoreWraper(keyStoreContainer
@@ -60,12 +62,15 @@ public class ContactIndexTest {
 		PrivateKeyEntry containerMessagePrivateKeyEntry = containerKeyStoreWraper.findAnyMessagePrivateKeyEntry();
 		if(containerMessagePrivateKeyEntry==null){
 			new KeyPairBuilder()
-				.withEndEntityName(new X500Name("cn="+name+" container"))
+				.withEndEntityName(new X500Name("cn="+userName+" container"))
 				.withKeyStoreWraper(containerKeyStoreWraper)
 				.build();
 			containerMessagePrivateKeyEntry = containerKeyStoreWraper.findAnyMessagePrivateKeyEntry();
 		}
 		FilesContainer container = new FileContainerImpl(containerMessagePrivateKeyEntry, rootDir);
-		return new ContactManagerHolder(container, rootDir, name, email, containerStorePass, containerKeyPass);
+		FileWrapper accountDir = container.newFile("account");
+		X509CertificateHolder containerCertHolder = V3CertificateUtils.getX509CertificateHolder(containerMessagePrivateKeyEntry.getCertificate());
+		String keyIdentifierAsString = KeyIdUtils.createPublicKeyIdentifierAsString(containerCertHolder);
+		return new AccountManager(new ActionContext(), accountDir, userName, email, keyIdentifierAsString.toCharArray());
 	}
 }

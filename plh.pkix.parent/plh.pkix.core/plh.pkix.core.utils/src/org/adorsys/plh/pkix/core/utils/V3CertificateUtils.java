@@ -119,6 +119,20 @@ public class V3CertificateUtils {
 		Date now = new Date();
 		return now.after(notBefore) && now.before(notAfter);
 	}
+
+	
+	public static boolean isValid(X509CertificateHolder certificateHolder, Date notBefore, Date notAfter){
+		Date certNotBefore = certificateHolder.getNotBefore();
+		Date certNotAfter = certificateHolder.getNotAfter();
+		boolean before = true;
+		boolean after = true;
+		if(notBefore!=null)
+			before = (certNotBefore!=null) && (notBefore.equals(certNotBefore) || notBefore.after(certNotBefore));
+		if(notAfter!=null)
+			after = (certNotAfter!=null) && (notAfter.equals(certNotAfter) || notAfter.before(certNotAfter));
+
+		return before && after;
+	}
 	
 	public static boolean isCaKey(X509CertificateHolder cert){
 		// check is issuerCertificate is ca certificate
@@ -155,10 +169,22 @@ public class V3CertificateUtils {
 		}
 	}
 	
-	public static ContentSigner getContentSigner(PrivateKey issuerPrivatekey){
+//	public static ContentSigner getContentSigner(PrivateKey issuerPrivatekey){
+//		try {
+//			return new JcaContentSignerBuilder("SHA1WithRSA")
+//					.setProvider(ProviderUtils.bcProvider).build(issuerPrivatekey);
+//		} catch (OperatorCreationException e) {
+//            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
+//            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
+//                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+//            throw new PlhUncheckedException(msg, e);
+//		}
+//	}
+
+	public static ContentSigner getContentSigner(PrivateKey privatekey, String algo){
 		try {
-			return new JcaContentSignerBuilder("SHA1WithRSA")
-					.setProvider(ProviderUtils.bcProvider).build(issuerPrivatekey);
+			return new JcaContentSignerBuilder(algo)
+					.setProvider(ProviderUtils.bcProvider).build(privatekey);
 		} catch (OperatorCreationException e) {
             ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
             		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,

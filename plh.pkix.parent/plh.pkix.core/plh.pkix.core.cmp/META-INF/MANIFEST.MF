@@ -16,7 +16,7 @@ Require-Bundle: org.apache.httpcomponents.httpcore;bundle-version="4.1.4",
  plh.pkix.core.smime;bundle-version="0.0.1"
 Export-Package: org.adorsys.plh.pkix.core.cmp,
  org.adorsys.plh.pkix.core.cmp.certann,
- org.adorsys.plh.pkix.core.cmp.certrequest,
+ org.adorsys.plh.pkix.core.cmp.certrequest.endentity,
  org.adorsys.plh.pkix.core.cmp.fetch,
  org.adorsys.plh.pkix.core.cmp.initrequest,
  org.adorsys.plh.pkix.core.cmp.message,
