@@ -9,10 +9,12 @@ import java.util.Set;
 import junit.framework.Assert;
 
 import org.adorsys.plh.pkix.core.smime.contact.AccountManager;
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.store.FileContainerImpl;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.exception.PlhCheckedException;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
@@ -42,13 +44,13 @@ public class ContactIndexTest {
 		AccountManager nadegeContactManager = createContactManager("nadege", "Nadege Pouatcha", "npa@biz.com", "Nadege Pouatcha Container Key Pass".toCharArray(), "Nadege Pouatcha Container Store Pass".toCharArray());
 		AccountManager sandroContactManager = createContactManager("sandro", "Sandro Sonntag", "sso@biz.com", "Sandro Sonntag Container Key Pass".toCharArray(), "Sandro Sonntag Container Store Pass".toCharArray());
 		
-		PrivateKeyEntry nadegePrivateKeyEntry = nadegeContactManager.getAccountKeyStoreWraper().findAnyMessagePrivateKeyEntry();
-		PrivateKeyEntry sandroPrivateKeyEntry = sandroContactManager.getAccountKeyStoreWraper().findAnyMessagePrivateKeyEntry();
-		francisContactManager.getContactManager().addContact(V3CertificateUtils.getX509CertificateHolder(nadegePrivateKeyEntry.getCertificate()));
-		francisContactManager.getContactManager().addContact(V3CertificateUtils.getX509CertificateHolder(sandroPrivateKeyEntry.getCertificate()));
+		PrivateKeyEntry nadegePrivateKeyEntry = nadegeContactManager.getAccountContext().get1(ContactManager.class).getMainMessagePrivateKeyEntry();
+		PrivateKeyEntry sandroPrivateKeyEntry = sandroContactManager.getAccountContext().get1(ContactManager.class).getMainMessagePrivateKeyEntry();
+		francisContactManager.getAccountContext().get1(ContactManager.class).addCertEntry(V3CertificateUtils.getX509CertificateHolder(nadegePrivateKeyEntry.getCertificate()));
+		francisContactManager.getAccountContext().get1(ContactManager.class).addCertEntry(V3CertificateUtils.getX509CertificateHolder(sandroPrivateKeyEntry.getCertificate()));
 
 		francisContactManager = createContactManager("francis", "Francis Pouatcha", "fpo@biz.com", "Francis Pouatcha Container Key Pass".toCharArray(), "Francis Pouatcha Container Store Pass".toCharArray());
-		Set<String> francisContacts = francisContactManager.getContactManager().getContactIndex().listContacts();
+		Set<String> francisContacts = francisContactManager.getAccountContext().get1(ContactManager.class).listContacts();
 		Assert.assertTrue(francisContacts.contains("npa@biz.com"));
 		Assert.assertTrue(francisContacts.contains("sso@biz.com"));
 	}
@@ -58,16 +60,17 @@ public class ContactIndexTest {
 		FilesContainer keyStoreContainer = new UnprotectedFileContainer(rootDir);
 		KeyStoreWraper containerKeyStoreWraper = new KeyStoreWraper(keyStoreContainer
 				.newFile("containerKeyStore"), containerKeyPass, containerStorePass);
-
-		PrivateKeyEntry containerMessagePrivateKeyEntry = containerKeyStoreWraper.findAnyMessagePrivateKeyEntry();
+		ContactManager contactManager = new ContactManagerImpl(containerKeyStoreWraper, null);
+		PrivateKeyEntry containerMessagePrivateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		if(containerMessagePrivateKeyEntry==null){
 			new KeyPairBuilder()
 				.withEndEntityName(new X500Name("cn="+userName+" container"))
 				.withKeyStoreWraper(containerKeyStoreWraper)
 				.build();
-			containerMessagePrivateKeyEntry = containerKeyStoreWraper.findAnyMessagePrivateKeyEntry();
+			contactManager = new ContactManagerImpl(containerKeyStoreWraper, null);
+			containerMessagePrivateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		}
-		FilesContainer container = new FileContainerImpl(containerMessagePrivateKeyEntry, rootDir);
+		FilesContainer container = new FileContainerImpl(contactManager, rootDir);
 		FileWrapper accountDir = container.newFile("account");
 		X509CertificateHolder containerCertHolder = V3CertificateUtils.getX509CertificateHolder(containerMessagePrivateKeyEntry.getCertificate());
 		String keyIdentifierAsString = KeyIdUtils.createPublicKeyIdentifierAsString(containerCertHolder);

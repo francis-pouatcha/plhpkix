@@ -84,17 +84,17 @@ public class ActionContext {
 		}
 		return false;
 	}
-	public <T> T get(Class<T> klass){
-		return get(klass, klass.getName());
+	public <T> T get1(Class<T> klass){
+		return get1(klass, klass.getName());
 	}	
-	public <T> T get(Class<T> klass, String name){
+	public <T> T get1(Class<T> klass, String name){
 		if(name==null) name=klass.getName();
 		T result = null;
 		Map<String, T> map = getMap(klass, false);
 		if(map!=null) {
 			result = (T) map.get(name);
 		}
-		if(result==null && parent!=null) result = parent.get(klass, name);
+		if(result==null && parent!=null) result = parent.get1(klass, name);
 		
 		return result;
 	}

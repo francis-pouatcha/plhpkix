@@ -7,7 +7,8 @@ import java.util.Date;
 import java.util.Random;
 
 import org.adorsys.plh.pkix.core.cmp.certrequest.CertRequestMessages;
-import org.adorsys.plh.pkix.core.cmp.stores.OutgoingRequest;
+import org.adorsys.plh.pkix.core.cmp.initrequest.InitRequestMessages;
+import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
@@ -77,7 +78,7 @@ public class OutgoingInitializationRequestInitActionExecutor {
 	private final BuilderChecker checker = new BuilderChecker(
 			OutgoingInitializationRequestInitActionExecutor.class);
 
-	public ProcessingResults<OutgoingInitializationRequestData> build(PrivateKeyEntry senderPrivateKeyEntry) {
+	public ProcessingResults<CMPRequest> build(PrivateKeyEntry senderPrivateKeyEntry) {
     	checker.checkDirty()
     		.checkNull(senderPrivateKeyEntry);
     	
@@ -144,7 +145,9 @@ public class OutgoingInitializationRequestInitActionExecutor {
 		}else if (receiverEmail!=null){
 			recipientName = X500NameHelper.makeSubjectAlternativeName(receiverEmail);
 		} else {
-			throw new IllegalStateException("neither recipient name nor recipient email set.");
+            ErrorBundle msg = new ErrorBundle(CertRequestMessages.class.getName(),
+            		InitRequestMessages.InitRequestMessages_ui_missingRecipient);
+            throw new PlhUncheckedException(msg);
 		}
         
         ProtectedPKIMessage mainMessage;
@@ -169,12 +172,13 @@ public class OutgoingInitializationRequestInitActionExecutor {
 		}
 
 		PKIMessage pkiMessage = mainMessage.toASN1Structure();
-		OutgoingRequest initializationRequest = 
-				new OutgoingRequest(certReqId, pkiMessage, new DERGeneralizedTime(new Date()));
-		OutgoingInitializationRequestData requestData = new OutgoingInitializationRequestData(initializationRequest);
-
-		ProcessingResults<OutgoingInitializationRequestData> processingResults = new ProcessingResults<OutgoingInitializationRequestData>();
-		processingResults.setReturnValue(requestData);
+		CMPRequest initializationRequest = 
+				new CMPRequest(pkiMessage.getHeader().getTransactionID(), 
+						new DERGeneralizedTime(new Date()));
+		initializationRequest.setPkiMessage(pkiMessage);
+		
+		ProcessingResults<CMPRequest> processingResults = new ProcessingResults<CMPRequest>();
+		processingResults.setReturnValue(initializationRequest);
 		
 		return processingResults;
 	}

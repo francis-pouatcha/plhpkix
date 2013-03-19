@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedDecryptorVerifier;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
-import org.bouncycastle.cert.X509CertificateHolder;
+import org.apache.commons.io.FileUtils;
 
 /**
  * @author francis
@@ -54,7 +54,7 @@ public class FileWraperImpl implements FileWrapper{
 
 	@Override
 	public boolean delete() {
-		return file.delete();
+		return FileUtils.deleteQuietly(file);
 	}
 
 	@Override
@@ -92,10 +92,13 @@ public class FileWraperImpl implements FileWrapper{
 	}
 
 	private KeyStoreWraper keyStoreWraper;
+	/**
+	 * 
 	@Override
 	public X509CertificateHolder loadKeyCertificate(String publicKeyIdentifier) {
 		return getKeyStoreWraper().findKeyCertificate(publicKeyIdentifier);
 	}
+	 */
 	@Override
 	public KeyStoreWraper getKeyStoreWraper() {
 		if(keyStoreWraper==null){

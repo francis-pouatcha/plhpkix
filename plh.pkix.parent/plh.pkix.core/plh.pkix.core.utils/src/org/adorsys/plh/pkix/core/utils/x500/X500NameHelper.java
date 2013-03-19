@@ -1,11 +1,13 @@
 package org.adorsys.plh.pkix.core.utils.x500;
 
+import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DERIA5String;
@@ -65,7 +67,7 @@ public class X500NameHelper {
 	
 	public static X500Name makeX500Name(String name, String email, String subjectUniqueIdentifier){
 		String emailStrict;
-		List<String> parseEmailAddress = X500NameHelper.parseEmailAddress(email);
+		List<String> parseEmailAddress = X500NameHelper.parseEmailAddress(email.toLowerCase());
 		if(!parseEmailAddress.isEmpty()){
 			emailStrict = parseEmailAddress.iterator().next();
 		} else {
@@ -85,7 +87,7 @@ public class X500NameHelper {
 		}
 		List<String> parseEmailAddress = parseEmailAddress(emails);
 		for (String email : parseEmailAddress) {
-			generalNames.add(new GeneralName(GeneralName.rfc822Name, email));
+			generalNames.add(new GeneralName(GeneralName.rfc822Name, email.toLowerCase()));
 		}
 		if(generalNames.isEmpty()) return null;
 		GeneralName[] generalNamesArray = generalNames.toArray(new GeneralName[generalNames.size()]);
@@ -108,6 +110,10 @@ public class X500NameHelper {
 		// look for email address field
 		return getAttributeString(dn, BCStyle.EmailAddress);
 	}
+	
+	public static List<String> readSubjectEmails(Certificate certificate){
+		return readSubjectEmails(V3CertificateUtils.getX509CertificateHolder(certificate));
+	}
 
 	public static List<String> readSubjectEmails(X509CertificateHolder certHolder){
 		Extension extension = certHolder.getExtension(X509Extension.subjectAlternativeName);
@@ -122,7 +128,7 @@ public class X500NameHelper {
 		} 
 
 		String emailAddress = readSubjectEmailFromDN(certHolder);
-		if(emailAddress!=null) result.add(emailAddress);
+		if(emailAddress!=null) result.add(emailAddress.toLowerCase());
 
 		return result ;
 	}
@@ -137,13 +143,13 @@ public class X500NameHelper {
 				GeneralName[] names = generalNames.getNames();
 				for (GeneralName generalName : names) {
 					if(generalName.getTagNo()==GeneralName.rfc822Name)
-						result.add(DERIA5String.getInstance(generalName.getName()).getString());
+						result.add(DERIA5String.getInstance(generalName.getName()).getString().toLowerCase());
 				}
 			}
 		}
 
 		String email1 = readEmailFromDN(certTemplate.getSubject());
-		if(email1!=null) result.add(email1);
+		if(email1!=null) result.add(email1.toLowerCase());
 
 		return result ;
 	}	
@@ -161,7 +167,7 @@ public class X500NameHelper {
 			if(rdNs.length>1) return subject;// not blank
 			AttributeTypeAndValue first = rdNs[0].getFirst();
 			String string = first.getValue().toString();
-			if(StringUtils.isNotBlank(string)) return subject;
+			if(StringUtils.isNotBlank(string) || StringUtils.equalsIgnoreCase(string, "''")) return subject;
 		}
 		Extension extension = certificate.getExtension(X509Extension.subjectAlternativeName);
 		if(extension!=null) {
@@ -233,7 +239,7 @@ public class X500NameHelper {
 	public static List<String> readIssuerEmails(X509CertificateHolder certHolder) {
 		List<String> result = new ArrayList<String>();
 		String emailAddress = readSubjectEmailFromDN(certHolder);
-		if(emailAddress!=null) result.add(emailAddress);
+		if(emailAddress!=null) result.add(emailAddress.toLowerCase());
 
 		Extension extension = certHolder.getExtension(X509Extension.issuerAlternativeName);
 		if(extension!=null) {
@@ -241,7 +247,7 @@ public class X500NameHelper {
 			GeneralName[] names = generalNames.getNames();
 			for (GeneralName generalName : names) {
 				if(generalName.getTagNo()==GeneralName.rfc822Name)
-					result.add(DERIA5String.getInstance(generalName.getName()).getString());
+					result.add(DERIA5String.getInstance(generalName.getName()).getString().toLowerCase());
 			}
 		} 
 		return result ;

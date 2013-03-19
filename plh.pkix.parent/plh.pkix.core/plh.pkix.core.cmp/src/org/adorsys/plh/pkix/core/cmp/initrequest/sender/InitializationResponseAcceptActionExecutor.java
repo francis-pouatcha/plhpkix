@@ -1,31 +1,33 @@
 package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.ArrayList;
+import java.security.cert.CertStore;
+import java.security.cert.PKIXParameters;
 import java.util.List;
 
-import org.adorsys.plh.pkix.core.cmp.certrequest.endentity.CertificationReplyValidator;
 import org.adorsys.plh.pkix.core.cmp.initrequest.InitRequestMessages;
-import org.adorsys.plh.pkix.core.cmp.message.PKIMessageActionData;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingRequest;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingRequestData;
-import org.adorsys.plh.pkix.core.cmp.stores.PendingRequests;
+import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
+import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
+import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertChainValidationResult;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertChainValidationResults;
+import org.adorsys.plh.pkix.core.utils.store.GeneralCertValidator;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
 import org.bouncycastle.asn1.cmp.CertOrEncCert;
 import org.bouncycastle.asn1.cmp.CertRepMessage;
 import org.bouncycastle.asn1.cmp.CertResponse;
-import org.bouncycastle.asn1.cmp.PKIBody;
+import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
 import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.cmp.GeneralPKIMessage;
+import org.bouncycastle.cert.jcajce.JcaCertStoreBuilder;
 import org.bouncycastle.i18n.ErrorBundle;
 
 /**
@@ -62,78 +64,72 @@ public class InitializationResponseAcceptActionExecutor {
 	private final BuilderChecker checker = new BuilderChecker(
 			InitializationResponseAcceptActionExecutor.class);
 	
-	public ProcessingResults<List<X509CertificateHolder>> execute() {
+	public ProcessingResults<ASN1CertChainValidationResult> execute() {
 
 		checker.checkDirty().checkNull(actionContext);
-
-		PKIMessageActionData actionData =  actionContext.get(PKIMessageActionData.class,null);
-		GeneralPKIMessage generalPKIMessage = new GeneralPKIMessage(actionData.getPkiMessage());
-		PKIBody pkiBody = generalPKIMessage.getBody();
-		CertRepMessage certRepMessage = CertRepMessage.getInstance(pkiBody.getContent());
-
-		ProcessingResults<List<X509CertificateHolder>> pr = new ProcessingResults<List<X509CertificateHolder>>();
-
-		// check that sender is the addressed CA
-		CertResponse[] response = certRepMessage.getResponse();
-		if(response.length<=0){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"InitRequestMessages.response.certResponseEmpty");
-			pr.addError(msg);
-			return pr;
-		}
-		BigInteger certReqIdAsBigInteger=null;
-		ASN1Integer certReqId=null;
-		CertResponse certResp = response[0];
-
-		ASN1Integer crid = certResp.getCertReqId();
-		if(crid == null){// : "Missing cert request id, do not process";
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"InitRequestMessages.response.missingCertRequestId");
-			pr.addError(msg);
-			return pr;
-		}
+		CMPRequest cmpRequest = actionContext.get(CMPRequest.class);
+		checker.checkDirty().checkNull(cmpRequest);
+		ProcessingResults<ASN1CertChainValidationResult> pr = 
+				new ProcessingResults<ASN1CertChainValidationResult>();
 		
-		certReqIdAsBigInteger = crid.getPositiveValue();
-		certReqId = crid;
-		
-		PendingRequests pendingRequests = actionContext.get(PendingRequests.class, null);
-		PendingRequestData pendingRequestData = pendingRequests.loadPendingRequest(certReqId.getPositiveValue());
-		if(pendingRequestData==null){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"InitRequestMessages.request.missingCertRequestHolder");
-			pr.addError(msg);
-			return pr;
-		}
-
-		// verify that certificate meet initial requirements.
-		PendingRequest pendingRequest = pendingRequestData.getPendingRequest();
 		CertReqMessages certReqMessages = CertReqMessages
-				.getInstance(pendingRequest.getPkiMessage().getBody()
-						.getContent());
+				.getInstance(cmpRequest.getPkiMessage().getBody().getContent());
 		CertReqMsg[] certReqMsgArray = certReqMessages.toCertReqMsgArray();
 		if(certReqMsgArray==null || certReqMsgArray.length<=0){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"InitRequestMessages.request.noCertrequestMessageInHolder");
+					InitRequestMessages.InitRequestMessages_request_noCertrequestMessageInHolder);
 			pr.addError(msg);
 			return pr;
 		}
 
 		if(certReqMsgArray.length>1){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"InitRequestMessages.request.processOnlyFirstcertRequestMessage");
+					InitRequestMessages.InitRequestMessages_request_processOnlyFirstcertRequestMessage);
 			pr.addNotification(msg);
 		}
 		CertReqMsg certReqMsg = certReqMsgArray[0];
-
-		CertTemplate certTemplate = certReqMsg.getCertReq()
-				.getCertTemplate();
-
+		ASN1Integer certReqId=certReqMsg.getCertReq().getCertReqId();
+		// the original template
+		CertTemplate certTemplate = certReqMsg.getCertReq().getCertTemplate();
+		
+		PKIMessage responseMessage = cmpRequest.getResponseMessage();
+		CertRepMessage certRepMessage = CertRepMessage.getInstance(responseMessage.getBody().getContent());
+		CMPCertificate[] caPubs = certRepMessage.getCaPubs();
+		JcaCertStoreBuilder storeBuilder = new JcaCertStoreBuilder()
+			.setProvider(ProviderUtils.bcProvider);
+		for (CMPCertificate cmpCertificate : caPubs) {
+			X509CertificateHolder certificateHolder = new X509CertificateHolder(cmpCertificate.getX509v3PKCert());
+			storeBuilder.addCertificate(certificateHolder);
+		}
+		CertStore senderSupliedCerts = storeBuilder.build();
+		PKIXParameters pkixParam = new PKIXParameters(trustAnchors);
+			
+		// check that sender is the addressed CA
+		CertResponse[] response = certRepMessage.getResponse();
+		if(response.length<=0){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					InitRequestMessages.InitRequestMessages_response_certResponseEmpty);
+			pr.addError(msg);
+			return pr;
+		}
+		
 		// iterate through the cert response and build the certification path.
-		List<X509CertificateHolder> certificateChain = new ArrayList<X509CertificateHolder>(response.length);
-		for (CertResponse certResponse : response) {
-			if(!certReqIdAsBigInteger.equals(crid.getPositiveValue())){
+		for (int i = 0; i < response.length; i++) {
+			CertResponse certResponse = response[i];
+			ASN1Integer crid = certResponse.getCertReqId();
+			if(crid == null){// : "Missing cert request id, do not process";
 				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"InitRequestMessages.response.allResponsesMussCarrySameCertReqId");
+						InitRequestMessages.InitRequestMessages_response_missingCertRequestId);
+				pr.addError(msg);
+				return pr;
+			}
+			
+			if(certReqId.equals(crid)){
+				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+						InitRequestMessages.InitRequestMessages_response_wrongCertRequestId,
+						new Object[]{KeyIdUtils.hexEncode(crid),
+						KeyIdUtils.hexEncode(certReqId),
+						KeyIdUtils.hexEncode(cmpRequest.getTransactionID())});
 				pr.addError(msg);
 				return pr;
 			}
@@ -142,20 +138,32 @@ public class InitializationResponseAcceptActionExecutor {
 				CertOrEncCert certOrEncCert = certResponse
 						.getCertifiedKeyPair().getCertOrEncCert();
 				CMPCertificate cmpCertificate = certOrEncCert.getCertificate();
-				Certificate x509v3pkCert = cmpCertificate.getX509v3PKCert();
-				X509CertificateHolder certificate = new X509CertificateHolder(x509v3pkCert.getEncoded());
-				certificateChain.add(certificate);
+				new GeneralCertValidator()
+					.withPKIXParameters(pkixParam)
+					.withSenderSupliedCerts(senderSupliedCerts)
+					.validate();
 			} catch (IOException e) {
 				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
 						"InitRequestMessages.response.canNotReadCertificate");
 				pr.addError(msg);
 				return pr;
 			}
-		}			
+		}
+
+		ASN1CertChainValidationResult certChainValidationResult = new ASN1CertChainValidationResult(cmpRequest.getTransactionID(), certificates);
+		new InitializationReplyValidator()
+			.withCertTemplate(certTemplate)
+			.validate(processingResults);
+		
 		// the first certificate
-		if(!pr.hasReturnValue())pr.setReturnValue(certificateChain);
+		List<List<X509CertificateHolder>> certChains = V3CertificateUtils.splitCertList(certificateChain);
+		for (List<X509CertificateHolder> list : certChains) {
+			ProcessingResults<List<X509CertificateHolder>> processingResults = new ProcessingResults<List<X509CertificateHolder>>();
+			processingResults.setReturnValue(list);
+		}
+		if(!pr.hasReturnValue())pr.setReturnValue(certChains);
 								
-		new CertificationReplyValidator()
+		new InitializationReplyValidator()
 			.withCertTemplate(certTemplate)
 			.validate(pr);
 		return pr;
@@ -165,17 +173,4 @@ public class InitializationResponseAcceptActionExecutor {
 		this.actionContext = actionContext;
 		return this;
 	}
-
-//	private X509CertificateHolder readCertificate(CertResponse certResponse) throws CRMFException{
-//		CertOrEncCert certOrEncCert = certResponse
-//				.getCertifiedKeyPair().getCertOrEncCert();
-//		CMPCertificate certificate = certOrEncCert.getCertificate();
-////		EncryptedValue encryptedCert = certOrEncCert.getEncryptedCert();
-//
-//		ValueDecryptorGenerator decGen = new JceAsymmetricValueDecryptorGenerator(
-//				subjectPrivateKey).setProvider(ProviderUtils.bcProvider);
-//		EncryptedValueParser parser = new EncryptedValueParser(
-//				encryptedCert);
-//		return parser.readCertificateHolder(decGen);
-//	}
 }

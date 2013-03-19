@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import javax.mail.internet.MimeBodyPart;
 
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartDecryptor;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartDecryptorVerifier;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartEncryptor;
@@ -21,6 +22,7 @@ import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartSigner;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartSignerEncryptor;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartVerifier;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
@@ -38,11 +40,12 @@ public class SMIMEBodyPartSignerEncryptorTest {
 	@Test
 	public void test() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
+		new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
+		ContactManager contactManager = new ContactManagerImpl(keyStoreWraper, null);
+		PrivateKeyEntry privateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		X509CertificateHolder subjectCertificate = new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
 		X509Certificate x509Certificate = V3CertificateUtils.getX509JavaCertificate(subjectCertificate);
 
@@ -78,7 +81,7 @@ public class SMIMEBodyPartSignerEncryptorTest {
         FileInputStream signedEncryptedInputStream = new FileInputStream(signedEncryptedOutputFile);
         MimeBodyPart signEncryptedBodyPartIn = new MimeBodyPart(signedEncryptedInputStream);
 		CMSSignedMessageValidator<MimeBodyPart> signedMessageValidator = new SMIMEBodyPartDecryptorVerifier()
-		.withKeyStoreWraper(keyStoreWraper)
+		.withContactManager(contactManager)
 		.withMimeBodyPart(signEncryptedBodyPartIn)
 		.decryptAndVerify();
         
@@ -105,11 +108,12 @@ public class SMIMEBodyPartSignerEncryptorTest {
 	@Test
 	public void testSteps() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
+		new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
+		ContactManager contactManager = new ContactManagerImpl(keyStoreWraper, null);
+		PrivateKeyEntry privateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 
 		ArrayList<X509Certificate> senderCertificateChain = new ArrayList<X509Certificate>();
 		Certificate[] certificateChain = privateKeyEntry.getCertificateChain();
@@ -159,7 +163,7 @@ public class SMIMEBodyPartSignerEncryptorTest {
 		FileInputStream encryptedBodyPartInputStream = new FileInputStream(encryptedOutputFile);
 		MimeBodyPart encryptedBodyPart2 = new MimeBodyPart(encryptedBodyPartInputStream);
 		MimeBodyPart decryptedBodyPart2 = new SMIMEBodyPartDecryptor()
-			.withKeyStoreWraper(keyStoreWraper)
+			.withContactManager(contactManager)
 			.withMimeBodyPart(encryptedBodyPart2)
 			.decrypt();
 
@@ -176,7 +180,7 @@ public class SMIMEBodyPartSignerEncryptorTest {
         MimeBodyPart readSignedBodyPart = new MimeBodyPart(decryptedInputStream);
 		
         CMSSignedMessageValidator<MimeBodyPart> signedMessageValidator = new SMIMEBodyPartVerifier()
-			.withKeyStoreWraper(keyStoreWraper)
+			.withContactManager(contactManager)
 			.withSignedBodyPart(readSignedBodyPart)
 			.readAndVerify();
 

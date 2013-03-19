@@ -9,7 +9,9 @@ import org.adorsys.plh.pkix.core.cmp.activation.ModuleActivators;
 import org.adorsys.plh.pkix.core.cmp.initrequest.sender.InitializationRequestFieldHolder;
 import org.adorsys.plh.pkix.core.cmp.initrequest.sender.OutgoingInitializationRequestInitActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.message.ExecutorConstants;
-import org.adorsys.plh.pkix.core.cmp.registration.RegsitrationRequestInitActionProcessor;
+import org.adorsys.plh.pkix.core.cmp.registration.RegistrationRequestInitActionProcessor;
+import org.adorsys.plh.pkix.core.cmp.stores.IncomingRequests;
+import org.adorsys.plh.pkix.core.cmp.stores.OutgoingRequests;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
@@ -30,6 +32,8 @@ public class CMPAccount {
 
 		CMPMessageEndpoint cmpMessageEndpoint = new AsynchCMPMessageEndpoint(executors_in, new DispatchingCMPMessageEndpoint(moduleActivators, accountContext));
 		accountContext.put(CMPMessageEndpoint.class, cmpMessageEndpoint);
+		accountContext.put(OutgoingRequests.class, new OutgoingRequests(accountDir));
+		accountContext.put(IncomingRequests.class, new IncomingRequests(accountDir));
 		
 	}
 	
@@ -38,16 +42,16 @@ public class CMPAccount {
 	 */
 	public void registerAccount(){
 		KeyStoreWraper keyStoreWraper = accountContext.get(KeyStoreWraper.class);
-		PrivateKeyEntry caPrivateKeyEntry = keyStoreWraper.findAnyCaPrivateKeyEntry();
+//		PrivateKeyEntry caPrivateKeyEntry = keyStoreWraper.findAnyCaPrivateKeyEntry();
 		PrivateKeyEntry messagePrivateKeyEntry = keyStoreWraper.findAnyMessagePrivateKeyEntry();
-		registerAccount(caPrivateKeyEntry);
+//		registerAccount(caPrivateKeyEntry);
 		registerAccount(messagePrivateKeyEntry);
 	}
 	
 	private void registerAccount(PrivateKeyEntry privateKeyEntry){
 		ActionContext actionContext = new ActionContext(accountContext);
 		accountContext.put(PrivateKeyEntry.class, privateKeyEntry);
-		RegsitrationRequestInitActionProcessor processor = actionContext.get(RegsitrationRequestInitActionProcessor.class);	
+		RegistrationRequestInitActionProcessor processor = actionContext.get(RegistrationRequestInitActionProcessor.class);	
 		processor.process(actionContext);
 	}
 

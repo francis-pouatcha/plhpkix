@@ -5,13 +5,13 @@ import java.util.Collection;
 import java.util.Date;
 
 import org.adorsys.plh.pkix.core.cmp.CMPMessenger;
-import org.adorsys.plh.pkix.core.cmp.message.CertificateChain;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncement;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncementData;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncementHandle;
 import org.adorsys.plh.pkix.core.cmp.stores.PendingCertAnnouncements;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertificateChain;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.bouncycastle.asn1.DERGeneralizedTime;
 import org.bouncycastle.asn1.cmp.PKIMessage;
@@ -40,7 +40,7 @@ public class CertAnnouncementJob implements Runnable{
 			if(pendingCertAnnouncementHandle.getAnnouncedtTime()!=null) continue;
 			PendingCertAnnouncementData pendingCertAnnouncementData = pendingCertAnnouncements.loadPendingCertAnnouncement(pendingCertAnnouncementHandle);
 			PendingCertAnnouncement pendingCertAnnouncement = pendingCertAnnouncementData.getPendingCertAnnouncement();
-			CertificateChain certificateChain = pendingCertAnnouncement.getCertificateChain();
+			ASN1CertificateChain certificateChain = pendingCertAnnouncement.getCertificateChain();
 			Certificate[] certArray = certificateChain.toCertArray();
 			if(certArray.length<2) {// no cert announcement needed for self signed certificate
 				setAcnnounced(pendingCertAnnouncement, pendingCertAnnouncements);

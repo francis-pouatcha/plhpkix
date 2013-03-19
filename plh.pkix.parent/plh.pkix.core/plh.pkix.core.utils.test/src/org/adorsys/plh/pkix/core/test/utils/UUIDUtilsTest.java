@@ -17,11 +17,20 @@ public class UUIDUtilsTest {
 		Assert.assertArrayEquals(uuidToBytes, byteArray);
 	}
 	
-	@SuppressWarnings("unused")
 	@Test
 	public void testBigIntegerUUID(){
-		BigInteger bigInteger = UUIDUtils.toBigInteger(UUID.randomUUID());
-		String string = bigInteger.toString(16).toUpperCase();
+		UUID randomUUID = UUID.randomUUID();
+//		BigInteger bigInteger = UUIDUtils.toBigInteger(randomUUID);
+		byte[] uuidToBytes = UUIDUtils.uuidToBytes(randomUUID);
+		BigInteger bigInteger = new BigInteger(uuidToBytes);
+		byte[] byteArray = bigInteger.toByteArray();
+		Assert.assertArrayEquals(uuidToBytes, byteArray);
+		
+		BigInteger bigInteger2 = new BigInteger(uuidToBytes);
+		
+		Assert.assertEquals(bigInteger, bigInteger2);
+		String string1 = bigInteger.toString(16).toUpperCase();
+		String string2 = bigInteger2.toString(16).toUpperCase();
+		Assert.assertEquals(string1, string2);
 	}
-
 }

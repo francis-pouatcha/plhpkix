@@ -9,7 +9,7 @@ import java.util.List;
 
 import org.adorsys.plh.pkix.core.cmp.stores.IncomingRequest;
 import org.adorsys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
-import org.adorsys.plh.pkix.core.smime.contact.ContactManager;
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.store.KeyAndContactDB;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyEntryAndCertificate;
@@ -22,6 +22,7 @@ import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.action.ActionHandler;
 import org.adorsys.plh.pkix.core.utils.action.ActionProcessor;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
 import org.bouncycastle.asn1.ASN1OctetString;
@@ -66,7 +67,7 @@ public class OutgoingInitializationResponseActionProcessor implements ActionProc
 	public void process(ActionContext context) {
 		IncomingInitializationRequestData requestData = context.get(IncomingInitializationRequestData.class);
 		KeyStoreWraper keyStoreWraper = context.get(KeyStoreWraper.class);
-		ContactManager contactManager = context.get(ContactManager.class);
+		ContactManager contactManager = context.get(ContactManagerImpl.class);
 		ActionHandler actionHandler = context.get(ActionHandler.class);
 		checker.checkNull(requestData, keyStoreWraper, actionHandler);
 		
@@ -232,7 +233,7 @@ public class OutgoingInitializationResponseActionProcessor implements ActionProc
 	private List<KeyEntryAndCertificate> filterContactsByIssuerEmails(
 			List<KeyEntryAndCertificate> foundCertificates,
 			List<String> issuerEmails) {
-		if(issuerEmails!=null && !issuerEmails.isEmpty()) return foundCertificates;
+		if(issuerEmails==null || issuerEmails.isEmpty()) return foundCertificates;
 		
 		List<KeyEntryAndCertificate> result = new ArrayList<KeyEntryAndCertificate>();
 		for (KeyEntryAndCertificate entry : foundCertificates) {

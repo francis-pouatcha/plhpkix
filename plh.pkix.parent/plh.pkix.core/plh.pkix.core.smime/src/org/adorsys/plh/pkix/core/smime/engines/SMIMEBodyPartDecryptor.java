@@ -9,7 +9,7 @@ import org.adorsys.plh.pkix.core.smime.utils.EnvelopedDataParserUtils;
 import org.adorsys.plh.pkix.core.smime.utils.RecipientAndRecipientInfo;
 import org.adorsys.plh.pkix.core.smime.utils.RecipientSelector;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.Recipient;
 import org.bouncycastle.cms.RecipientInformation;
@@ -18,20 +18,20 @@ import org.bouncycastle.mail.smime.SMIMEException;
 import org.bouncycastle.mail.smime.SMIMEUtil;
 
 public class SMIMEBodyPartDecryptor {
-	private KeyStoreWraper keyStoreWraper;
+	private ContactManager contactManager;
 	private MimeBodyPart mimeBodyPart;
 	
 	private final BuilderChecker checker = new BuilderChecker(SMIMEBodyPartDecryptor.class);
 	public MimeBodyPart decrypt() {
 
 		checker.checkDirty()
-			.checkNull(keyStoreWraper,mimeBodyPart);
+			.checkNull(contactManager,mimeBodyPart);
 		
 		SMIMEEnvelopedParser m=EnvelopedDataParserUtils.parseData(mimeBodyPart);
 
 		List<RecipientInformation> recipientInfosCollection = EnvelopedDataParserUtils.getRecipientInfosCollection(m);
 		RecipientAndRecipientInfo recipientAndRecipientInfo = new RecipientSelector()
-			.withKeyStoreWraper(keyStoreWraper)
+			.withContactManager(contactManager)
 			.withRecipientInfosColection(recipientInfosCollection)
 			.select();
 		
@@ -48,9 +48,9 @@ public class SMIMEBodyPartDecryptor {
 			throw new IllegalStateException(e);
 		}
 	}
-	
-	public SMIMEBodyPartDecryptor withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
+
+	public SMIMEBodyPartDecryptor withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 

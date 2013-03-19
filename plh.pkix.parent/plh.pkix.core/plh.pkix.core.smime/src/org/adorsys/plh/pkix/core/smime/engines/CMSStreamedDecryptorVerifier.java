@@ -2,55 +2,53 @@ package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.KeyStore.PrivateKeyEntry;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
+import java.security.cert.PKIXParameters;
+import java.util.List;
 
+import org.adorsys.plh.pkix.core.smime.utils.EnvelopedDataParserUtils;
+import org.adorsys.plh.pkix.core.smime.utils.RecipientAndRecipientInfo;
+import org.adorsys.plh.pkix.core.smime.utils.RecipientSelector;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
+import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
+import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
+import org.adorsys.plh.pkix.core.utils.store.CertStoreUtils;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedDataParser;
 import org.bouncycastle.cms.CMSTypedStream;
 import org.bouncycastle.cms.RecipientInformation;
-import org.bouncycastle.cms.RecipientInformationStore;
-import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
-import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
-import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.bouncycastle.util.Store;
 
 public class CMSStreamedDecryptorVerifier {
 	
-	private PrivateKeyEntry privateKeyEntry;
+	private ContactManager contactManager;
 	private InputStream inputStream;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSStreamedDecryptorVerifier.class);
 	public InputStream decryptingInputStream() {
 		checker.checkDirty()
-			.checkNull(privateKeyEntry,inputStream);//,outputStream);
-		
-		CMSEnvelopedDataParser cmsEnvelopedDataParser;
-		try {
-			cmsEnvelopedDataParser = new CMSEnvelopedDataParser(inputStream);
-		} catch (CMSException e) {
-			throw new IllegalArgumentException(e);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
+			.checkNull(contactManager,inputStream);
 
-		RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
+		CMSEnvelopedDataParser cmsEnvelopedDataParser = EnvelopedDataParserUtils.parseData(inputStream);		
+		List<RecipientInformation> recipientInfoList = EnvelopedDataParserUtils.getRecipientInfosCollection(cmsEnvelopedDataParser);
 
-        @SuppressWarnings("rawtypes")
-		Collection recipientsColection = recipients.getRecipients();
-        RecipientInformation recipient = (RecipientInformation) recipientsColection.iterator().next();
+        RecipientAndRecipientInfo recipientAndRecipientInfo = new RecipientSelector()
+	    	.withContactManager(contactManager)
+	    	.withRecipientInfosColection(recipientInfoList)
+	    	.select();
         
         InputStream encrryptedContentStream;
         try {
-        	CMSTypedStream contentStream = recipient.getContentStream(
-					new JceKeyTransEnvelopedRecipient(privateKeyEntry.getPrivateKey()).setProvider(ProviderUtils.bcProvider));
+        	CMSTypedStream contentStream = recipientAndRecipientInfo
+        			.getRecipientInformation()
+        			.getContentStream(recipientAndRecipientInfo.getRecipient());
         	encrryptedContentStream = contentStream.getContentStream();
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
@@ -75,31 +73,36 @@ public class CMSStreamedDecryptorVerifier {
 	
 	private CMSSignedDataParser sp;
 	private final BuilderChecker checker2 = new BuilderChecker(CMSStreamedDecryptorVerifier.class);
-	public void verify(){
+	public CMSSignedMessageValidator<Void> verify(){
 		checker2.checkDirty().checkNull(sp);
-
-		SignerInformationStore signerInfos;
+		
+        Store certificatesStore;
+        SignerInformationStore signerInfos;
+        CMSSignedMessageValidator<Void> signedMessageValidator = new CMSSignedMessageValidator<Void>();
 		try {
+			certificatesStore = sp.getCertificates();
 			signerInfos = sp.getSignerInfos();
+			PKIXParameters params = PKIXParametersFactory.makeParams(
+					contactManager.getTrustAnchors(), 
+					contactManager.getCrl(), 
+					contactManager.findCertStores(CertStoreUtils.toCertHolders(certificatesStore)));
+
+			signedMessageValidator
+				.withCertsFromMessage(CertStoreUtils.toCertStore(certificatesStore))
+				.withPKIXParameters(params)
+				.withSigners(signerInfos)
+				.validate();
+	        
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
+		} catch (SignedMailValidatorException e) {
+			throw new SecurityException(e);
 		}
-		@SuppressWarnings("rawtypes")
-		Collection signers = signerInfos.getSigners();
-		SignerInformation signer = (SignerInformation)signers.iterator().next();
-		boolean verified;
-		try {
-			verified = signer.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(ProviderUtils.bcProvider).build((X509Certificate) privateKeyEntry.getCertificate()));
-		} catch (OperatorCreationException e) {
-			throw new IllegalStateException(e);
-		} catch (CMSException e) {
-			throw new IllegalStateException(e);
-		}
-		if(!verified) throw new SecurityException("Could not verify content.");		
+		return signedMessageValidator;
 	}
 
-	public CMSStreamedDecryptorVerifier withPrivateKeyEntry(PrivateKeyEntry privateKeyEntry) {
-		this.privateKeyEntry = privateKeyEntry;
+	public CMSStreamedDecryptorVerifier withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 

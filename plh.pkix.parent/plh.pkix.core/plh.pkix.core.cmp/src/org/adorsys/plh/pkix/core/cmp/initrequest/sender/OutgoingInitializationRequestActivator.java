@@ -16,7 +16,6 @@ public class OutgoingInitializationRequestActivator extends ModuleActivator {
 
 	@Override
 	protected void activate(ActionContext actionContext, FileWrapper accountDir) {
-		actionContext.put(OutgoingInitializationRequests.class, new OutgoingInitializationRequests(accountDir));
 		actionContext.put(OutgoingInitializationRequestInitActionProcessor.class, new OutgoingInitializationRequestInitActionProcessor());
 		actionContext.put(OutgoingInitializationRequestSendActionProcessor.class, new OutgoingInitializationRequestSendActionProcessor());		
 
@@ -26,7 +25,7 @@ public class OutgoingInitializationRequestActivator extends ModuleActivator {
 	}
 
 	@Override
-	public ActionProcessor getIncommingProcessorClass() {
+	public ActionProcessor getIncommingProcessor() {
 		return incomingProcessor;		
 	}
 

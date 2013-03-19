@@ -1,6 +1,7 @@
 package org.adorsys.plh.pkix.core.utils.store;
 
 import java.security.cert.CertPath;
+import java.util.Collections;
 import java.util.List;
 
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
@@ -16,17 +17,17 @@ public class ValidationResult extends ProcessingResults<X509CertificateHolder> {
 
 	private List<ErrorBundle> notifications;
 
-	private List<?> userProvidedCerts;
+	private List<Boolean> userProvidedCerts;
 
 	private boolean signVerified;
 
 	ValidationResult(PKIXCertPathReviewer review, boolean verified,
 			List<ErrorBundle> errors, List<ErrorBundle> notifications,
-			List<?> userProvidedCerts) {
+			List<Boolean> userProvidedCerts) {
 		this.review = review;
 		this.errors = errors;
 		this.notifications = notifications;
-		signVerified = verified;
+		this.signVerified = verified;
 		this.userProvidedCerts = userProvidedCerts;
 	}
 
@@ -36,7 +37,7 @@ public class ValidationResult extends ProcessingResults<X509CertificateHolder> {
 	 * @return List of error messages
 	 */
 	public List<ErrorBundle> getErrors() {
-		return errors;
+		return Collections.unmodifiableList(errors);
 	}
 
 	/**
@@ -45,7 +46,7 @@ public class ValidationResult extends ProcessingResults<X509CertificateHolder> {
 	 * @return List of notification messages
 	 */
 	public List<ErrorBundle> getNotifications() {
-		return notifications;
+		return Collections.unmodifiableList(notifications);
 	}
 
 	/**
@@ -72,7 +73,7 @@ public class ValidationResult extends ProcessingResults<X509CertificateHolder> {
 	 *         certificate in the CertPath was taken from the CertStore of
 	 *         the SMIME message
 	 */
-	public List<?> getUserProvidedCerts() {
+	public List<Boolean> getUserProvidedCerts() {
 		return userProvidedCerts;
 	}
 

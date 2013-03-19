@@ -1,34 +1,30 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
-import java.security.cert.X509CRL;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 
 public class CMSDecryptorVerifier {
 	
-	private KeyStoreWraper keyStoreWraper;
-	private X509CRL crl;
+	private ContactManager contactManager;
 	private CMSPart inputPart;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSDecryptorVerifier.class);
 	public CMSSignedMessageValidator<CMSPart> decryptVerify() {
-		checker.checkDirty()
-			.checkNull(keyStoreWraper, inputPart);
+		checker.checkDirty().checkNull(contactManager, inputPart);
 
 		CMSPart decryptedPart = null;
 
 		decryptedPart = new CMSDecryptor()
-				.withKeyStoreWraper(keyStoreWraper)
+				.withContactManager(contactManager)
 				.withInputPart(inputPart)
 				.decrypt();
 
 		try {
 			return new CMSVerifier()
-				.withCrl(crl)
-				.withKeyStoreWraper(keyStoreWraper)
+				.withContactManager(contactManager)
 				.withInputPart(decryptedPart)
 				.readAndVerify();
 		} catch (IOException e) {
@@ -40,13 +36,8 @@ public class CMSDecryptorVerifier {
 		}
 	}
 
-	public CMSDecryptorVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
-		return this;
-	}
-
-	public CMSDecryptorVerifier withCrl(X509CRL crl) {
-		this.crl = crl;
+	public CMSDecryptorVerifier withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 

@@ -8,6 +8,8 @@ import org.adorsys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyUsageUtils;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertChainValidationResult;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertValidationResults;
 import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -32,114 +34,55 @@ public class CertificationReplyValidator {
 
 	private CertTemplate certTemplate;
 
-	public void validate(final ProcessingResults<List<X509CertificateHolder>> validationResult){
+	public void validate(final ASN1CertValidationResults certValidationResult, final ASN1CertValidationResults caValidationResult){
 		checker.checkDirty()
 			.checkNull(certTemplate,validationResult);
-
+		
 		List<X509CertificateHolder> certificateChain = validationResult.getReturnValue();
-		X509CertificateHolder repliedCertificate = certificateChain.get(0);
-		// collect modifications into a validation object and show user 
-		// for confirmation.
-		if (certTemplate.getSubject()!=null && !certTemplate.getSubject().equals(
-				repliedCertificate.getSubject())){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CertRequestMessages.certificate.subjectNoMatchingTemplate");
-			validationResult.addNotification(msg);
-		}
+		// validate only the main cert.
+		X509CertificateHolder requestedCertificate = certificateChain.get(0);
 
-		if (certTemplate.getPublicKey()!=null &&  !certTemplate.getPublicKey().equals(
-				repliedCertificate.getSubjectPublicKeyInfo())){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CertRequestMessages.certificate.publicKeyNoMatchingTemplate");
-			validationResult.addError(msg);
-			
-		}
+		checkIncludedSubject(requestedCertificate, validationResult);
 
-		if (certTemplate.getIssuer()!=null && !certTemplate.getIssuer().equals(
-				repliedCertificate.getIssuer())){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CertRequestMessages.certificate.issuerNoMatchingTemplate");
-			validationResult.addNotification(msg);
-			
-		}
-
-		if (certTemplate.getValidity()!=null){
-			OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
-					certTemplate.getValidity());
-			boolean notBeforeCompatible = OptionalValidityComparator
-					.isNotBeforeCompatible(optionalValidityFromTemplate
-							.getNotBeforeAsDate(), repliedCertificate
-							.getNotBefore());
-			boolean notAfterCompatible = OptionalValidityComparator
-					.isNotAfterCompatible(optionalValidityFromTemplate
-							.getNotAfterAsDate(), repliedCertificate
-							.getNotAfter());
-			if (!notBeforeCompatible || !notAfterCompatible){
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"CertRequestMessages.certificate.validityNoMatchingTemplate",
-						new Object[] {
-						optionalValidityFromTemplate.getNotBeforeAsDate(),
-						optionalValidityFromTemplate.getNotAfterAsDate(),
-						repliedCertificate.getNotBefore(),
-						repliedCertificate.getNotAfter()});
-				validationResult.addNotification(msg);			
-			}
-		}
+		checkPublicKey(requestedCertificate, validationResult);
 		
-		if(certTemplate.getSerialNumber()!=null &&
-				!certTemplate.getSerialNumber().equals(repliedCertificate.getSerialNumber())){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CertRequestMessages.certificate.serialNumberNoMatchingTemplate");
-			validationResult.addNotification(msg);
-		}
-
+		checkIssuer(requestedCertificate, validationResult);
 		
+		checkValidity(requestedCertificate, validationResult);
+	
+		checkSerial(requestedCertificate, validationResult);
+
+		checkExtensions(requestedCertificate, validationResult);
+	}
+
+	public CertificationReplyValidator withCertTemplate(CertTemplate certTemplate) {
+		this.certTemplate = certTemplate;
+		return this;
+	}
+
+	protected void checkExtensions(
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
 		Extensions certTemplateExtensions = certTemplate.getExtensions();
-		Extension basicConstraintsExtension = certTemplateExtensions.getExtension(X509Extension.basicConstraints);
-		BasicConstraints basicConstraints = BasicConstraints.getInstance(basicConstraintsExtension.getParsedValue());
-		if(basicConstraints!=null){
-			Extension repBasicConstraintsExtension = repliedCertificate.getExtension(X509Extension.basicConstraints);
-			BasicConstraints repBasicConstraints=null;
-			if(repBasicConstraintsExtension!=null){
-				repBasicConstraints = BasicConstraints.getInstance(repBasicConstraintsExtension.getParsedValue());
-			}
-			if(repBasicConstraints==null || basicConstraints.isCA()!=repBasicConstraints.isCA() ){
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"CertRequestMessages.certificate.caExtensionNoMatchingTemplate");
-				validationResult.addNotification(msg);
-			}
-		}
 
-		Extension subjectAlternativeNameExtension = certTemplateExtensions.getExtension(X509Extension.subjectAlternativeName);
-		if(subjectAlternativeNameExtension!=null) {
-			GeneralNames subjectAltName = GeneralNames.getInstance(subjectAlternativeNameExtension.getParsedValue());
-			Extension repSubjectAlternativeNameExtension = repliedCertificate.getExtension(X509Extension.subjectAlternativeName);
-			GeneralNames repSubjectAlternativeName=null;
-			if(repSubjectAlternativeNameExtension!=null){
-				repSubjectAlternativeName = GeneralNames.getInstance(repSubjectAlternativeNameExtension.getParsedValue());
-			}
-			if(repSubjectAlternativeName==null || !subjectAltName.equals(repSubjectAlternativeName)){
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"CertRequestMessages.certificate.subjectAlternativeNameExtensionNoMatchingTemplate");
-				validationResult.addNotification(msg);
-			}
-		}
-	
-		int keyUsage = KeyUsageUtils.getKeyUsage(certTemplateExtensions);
-		if(keyUsage>-1){
-			int keyUsage2 = KeyUsageUtils.getKeyUsage(repliedCertificate);
-			if(keyUsage!=keyUsage2){
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"CertRequestMessages.certificate.keyUsageExtensionNoMatchingTemplate");
-				validationResult.addNotification(msg);
-			}
+		checkBasicConstraintExtension(certTemplateExtensions, requestedCertificate, validationResult);
 
-		}
+		checkSubjectAlternativeNameExtension(certTemplateExtensions, requestedCertificate, validationResult);
+
+		checkKeyUsageNameExtension(certTemplateExtensions, requestedCertificate, validationResult);
+
+		checkAuthorityInfoAccessExtension(certTemplateExtensions, requestedCertificate, validationResult);
+		
+	}
 	
+	protected void checkAuthorityInfoAccessExtension(
+			Extensions certTemplateExtensions,
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
 		Extension authorityInfoAccessExtension = certTemplateExtensions.getExtension(X509Extension.authorityInfoAccess);
 		if(authorityInfoAccessExtension!=null){
 			AuthorityInformationAccess authorityInformationAccess = AuthorityInformationAccess.getInstance(authorityInfoAccessExtension.getParsedValue());
-			Extension repAuthorityInfoAccessExtension = repliedCertificate.getExtension(X509Extension.authorityInfoAccess);
+			Extension repAuthorityInfoAccessExtension = requestedCertificate.getExtension(X509Extension.authorityInfoAccess);
 			AuthorityInformationAccess repAuthorityInformationAccess = null;
 			if(repAuthorityInfoAccessExtension!=null){
 				repAuthorityInformationAccess = AuthorityInformationAccess.getInstance(repAuthorityInfoAccessExtension.getParsedValue());
@@ -152,8 +95,134 @@ public class CertificationReplyValidator {
 		}
 	}
 
-	public CertificationReplyValidator withCertTemplate(CertTemplate certTemplate) {
-		this.certTemplate = certTemplate;
-		return this;
+	protected void checkKeyUsageNameExtension(Extensions certTemplateExtensions,
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		
+		int keyUsage = KeyUsageUtils.getKeyUsage(certTemplateExtensions);
+		if(keyUsage>-1){
+			int keyUsage2 = KeyUsageUtils.getKeyUsage(requestedCertificate);
+			if(keyUsage!=keyUsage2){
+				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+						"CertRequestMessages.certificate.keyUsageExtensionNoMatchingTemplate");
+				validationResult.addNotification(msg);
+			}
+
+		}
 	}
+
+	protected void checkSubjectAlternativeNameExtension(
+			Extensions certTemplateExtensions,
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		Extension subjectAlternativeNameExtension = certTemplateExtensions.getExtension(X509Extension.subjectAlternativeName);
+		if(subjectAlternativeNameExtension!=null) {
+			GeneralNames subjectAltName = GeneralNames.getInstance(subjectAlternativeNameExtension.getParsedValue());
+			Extension repSubjectAlternativeNameExtension = requestedCertificate.getExtension(X509Extension.subjectAlternativeName);
+			GeneralNames repSubjectAlternativeName=null;
+			if(repSubjectAlternativeNameExtension!=null){
+				repSubjectAlternativeName = GeneralNames.getInstance(repSubjectAlternativeNameExtension.getParsedValue());
+			}
+			if(repSubjectAlternativeName==null || !subjectAltName.equals(repSubjectAlternativeName)){
+				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+						"CertRequestMessages.certificate.subjectAlternativeNameExtensionNoMatchingTemplate");
+				validationResult.addNotification(msg);
+			}
+		}
+	}
+
+	protected void checkBasicConstraintExtension(
+			Extensions certTemplateExtensions,
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult){
+		Extension basicConstraintsExtension = certTemplateExtensions.getExtension(X509Extension.basicConstraints);
+		BasicConstraints basicConstraints = BasicConstraints.getInstance(basicConstraintsExtension.getParsedValue());
+		if(basicConstraints!=null){
+			Extension repBasicConstraintsExtension = requestedCertificate.getExtension(X509Extension.basicConstraints);
+			BasicConstraints repBasicConstraints=null;
+			if(repBasicConstraintsExtension!=null){
+				repBasicConstraints = BasicConstraints.getInstance(repBasicConstraintsExtension.getParsedValue());
+			}
+			if(repBasicConstraints==null || basicConstraints.isCA()!=repBasicConstraints.isCA() ){
+				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+						"CertRequestMessages.certificate.caExtensionNoMatchingTemplate");
+				validationResult.addNotification(msg);
+			}
+		}		
+	}
+
+	protected void checkSerial(
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		if(certTemplate.getSerialNumber()!=null &&
+				!certTemplate.getSerialNumber().equals(requestedCertificate.getSerialNumber())){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					"CertRequestMessages.certificate.serialNumberNoMatchingTemplate");
+			validationResult.addNotification(msg);
+		}
+	}
+
+	protected void checkValidity(
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		if (certTemplate.getValidity()!=null){
+			OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
+					certTemplate.getValidity());
+			boolean notBeforeCompatible = OptionalValidityComparator
+					.isNotBeforeCompatible(optionalValidityFromTemplate
+							.getNotBeforeAsDate(), requestedCertificate
+							.getNotBefore());
+			boolean notAfterCompatible = OptionalValidityComparator
+					.isNotAfterCompatible(optionalValidityFromTemplate
+							.getNotAfterAsDate(), requestedCertificate
+							.getNotAfter());
+			if (!notBeforeCompatible || !notAfterCompatible){
+				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+						"CertRequestMessages.certificate.validityNoMatchingTemplate",
+						new Object[] {
+						optionalValidityFromTemplate.getNotBeforeAsDate(),
+						optionalValidityFromTemplate.getNotAfterAsDate(),
+						requestedCertificate.getNotBefore(),
+						requestedCertificate.getNotAfter()});
+				validationResult.addNotification(msg);			
+			}
+		}
+	}
+
+	protected void checkIssuer(
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		if (certTemplate.getIssuer()!=null && !certTemplate.getIssuer().equals(
+				requestedCertificate.getIssuer())){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					"CertRequestMessages.certificate.issuerNoMatchingTemplate");
+			validationResult.addNotification(msg);
+		}
+	}
+	
+	protected void checkIncludedSubject(
+			X509CertificateHolder requestedCertificate,
+			final ProcessingResults<List<X509CertificateHolder>> validationResult){
+		// collect modifications into a validation object and show user 
+		// for confirmation.
+		if (certTemplate.getSubject()!=null && !certTemplate.getSubject().equals(
+				requestedCertificate.getSubject())){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					"CertRequestMessages.certificate.subjectNoMatchingTemplate");
+			validationResult.addNotification(msg);
+		}
+	}
+
+	protected void checkPublicKey(
+			X509CertificateHolder requestedCertificate,
+			ProcessingResults<List<X509CertificateHolder>> validationResult) {
+		if (certTemplate.getPublicKey()!=null &&  !certTemplate.getPublicKey().equals(
+				requestedCertificate.getSubjectPublicKeyInfo())){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					"CertRequestMessages.certificate.publicKeyNoMatchingTemplate");
+			validationResult.addError(msg);
+			
+		}		
+	}
+
 }

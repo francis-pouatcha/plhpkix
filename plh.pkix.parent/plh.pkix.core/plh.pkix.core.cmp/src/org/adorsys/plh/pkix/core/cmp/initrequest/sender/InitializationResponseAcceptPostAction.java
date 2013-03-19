@@ -15,8 +15,6 @@ import org.bouncycastle.i18n.ErrorBundle;
 public class InitializationResponseAcceptPostAction extends GenericAction {
 	public static final String IMPORT_ON_CONFIRM_OUTCOME="import_on_confir";
 
-	private ProcessingResults<List<X509CertificateHolder>> processingResults;
-	
 	private final BuilderChecker checker = new BuilderChecker(InitializationResponseAcceptPostAction.class);
 	public InitializationResponseAcceptPostAction(
 			ActionContext actionContext,
@@ -27,7 +25,6 @@ public class InitializationResponseAcceptPostAction extends GenericAction {
 		addProcessor(CANCEL_OUTCOME, NullActionProcessor.class);
 		addProcessor(DELETE_AFTER_CONFIRM_OUTCOME, DeleteMessageAfterConfirmActionPreProcessor.class);
 		addProcessor(REJECT_AFTER_CONFIRM_OUTCOME, RejectMessageAfterConfirmActionPreProcessor.class);
-		this.processingResults = processingResults;
 		
 		if(processingResults.hasError()){
 			List<ErrorBundle> errors = processingResults.getErrors();
@@ -52,12 +49,11 @@ public class InitializationResponseAcceptPostAction extends GenericAction {
 				setOutcome(DELETE_AFTER_CONFIRM_OUTCOME);
 			}
 		} else if(processingResults.hasReturnValue()){
+//			new CertificateChainActionData(certificateChain);
+//			context.put(cer)
 			setOutcome(IMPORT_ON_CONFIRM_OUTCOME);
 		} else {
 			setOutcome(DELETE_AFTER_CONFIRM_OUTCOME);
 		}
-	}
-	public ProcessingResults<List<X509CertificateHolder>> getProcessingResults() {
-		return processingResults;
 	}
 }

@@ -4,21 +4,21 @@ import java.math.BigInteger;
 import java.security.KeyStore.PrivateKeyEntry;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.KeySelector;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.bouncycastle.cms.KeyTransRecipientId;
 import org.bouncycastle.cms.RecipientId;
 import org.bouncycastle.cms.RecipientInformation;
 
 public class PrivateKeySelector {
 
-	KeyStoreWraper keyStoreWraper;
+	private ContactManager contactManager;
 	private RecipientInformation recipient;
 
 	private BuilderChecker checker = new BuilderChecker(KeySelector.class);
 	public PrivateKeyEntry select(){
 		checker.checkDirty()
-			.checkNull(recipient, keyStoreWraper);
+			.checkNull(recipient, contactManager);
 
         RecipientId recipientId = recipient.getRID();
         if(!(recipientId instanceof KeyTransRecipientId))
@@ -27,12 +27,12 @@ public class PrivateKeySelector {
         KeyTransRecipientId keyTransRecipientId = (KeyTransRecipientId) recipientId;
         byte[] subjectKeyIdentifier = keyTransRecipientId.getSubjectKeyIdentifier();
         if(subjectKeyIdentifier!=null){
-        	PrivateKeyEntry pk = keyStoreWraper.findPrivateKeyEntryBySubjectKeyIdentifier(subjectKeyIdentifier);
+        	PrivateKeyEntry pk = contactManager.findEntryBySubjectKeyIdentifier(PrivateKeyEntry.class, subjectKeyIdentifier);
         	if(pk!=null) return pk;
         }
         
         BigInteger serialNumber = keyTransRecipientId.getSerialNumber();
-        return keyStoreWraper.findPrivateKeyEntryBySerialNumber(serialNumber);
+        return contactManager.findEntryBySerialNumber(PrivateKeyEntry.class, serialNumber);
 	}
 
 	public PrivateKeySelector withRecipientInformation(RecipientInformation recipientInformation) {
@@ -40,8 +40,8 @@ public class PrivateKeySelector {
 		return this;
 	}
 
-	public PrivateKeySelector withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
+	public PrivateKeySelector withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 }

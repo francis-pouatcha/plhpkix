@@ -2,6 +2,7 @@ package org.adorsys.plh.pkix.core.cmp.message;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
 import org.bouncycastle.asn1.cmp.PKIHeader;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.cmp.GeneralPKIMessage;
@@ -32,33 +33,31 @@ public class PkiMessageConformity {
 		ProcessingResults<ProtectedPKIMessage> enb = new ProcessingResults<ProtectedPKIMessage>();
 		PKIHeader pkiHeader = generalPKIMessage.getHeader();
 
+
 		GeneralName sender = pkiHeader.getSender();
 		if (sender == null){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CMPMessageValidatorMessages.conformity.missingSender");
-			enb.addError(msg);
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_missingSender);
+			throw new PlhUncheckedException(msg);
+		} else if(sender.getTagNo()!=GeneralName.directoryName){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_senderNotADirectoryName);
+			throw new PlhUncheckedException(msg);
 		}
 
 		GeneralName recipient = pkiHeader.getRecipient();
 		if (recipient == null){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CMPMessageValidatorMessages.conformity.missingRecipient");
-			enb.addError(msg);
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_missingRecipient);
+			throw new PlhUncheckedException(msg);
 		}
 
-		if (!generalPKIMessage.hasProtection()){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CMPMessageValidatorMessages.conformity.missingProtection");
-			enb.addError(msg);
-		}
+		ProtectedPKIMessage protectedPKIMessage = new ProtectedPKIMessage(generalPKIMessage);
 
-		ProtectedPKIMessage protectedPKIMessage = new ProtectedPKIMessage(
-				generalPKIMessage);
-		enb.setReturnValue(protectedPKIMessage);
 		if (protectedPKIMessage.hasPasswordBasedMacProtection()){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CMPMessageValidatorMessages.conformity.macProtectionNotSupportd");
-			enb.addError(msg);
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_macProtectionNotSupported);
+			throw new PlhUncheckedException(msg);
 		}
 		
 		return enb;

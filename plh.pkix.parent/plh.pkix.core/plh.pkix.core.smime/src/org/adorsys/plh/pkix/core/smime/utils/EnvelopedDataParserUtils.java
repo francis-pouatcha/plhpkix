@@ -52,4 +52,14 @@ public class EnvelopedDataParserUtils {
 		}
 		
 	}
+	
+	public static CMSEnvelopedDataParser parseData(InputStream inputStream){
+		try {
+			return new CMSEnvelopedDataParser(inputStream);
+		} catch (CMSException e) {
+			throw new IllegalArgumentException(e);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
+		}		
+	}
 }

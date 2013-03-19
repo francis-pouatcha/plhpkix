@@ -1,28 +1,26 @@
 package org.adorsys.plh.pkix.core.cmp.message;
 
-import java.security.GeneralSecurityException;
-import java.security.cert.CertStore;
 import java.security.cert.PKIXParameters;
+import java.text.ParseException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
-import org.adorsys.plh.pkix.core.cmp.utils.RequestVerifier2;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
-import org.adorsys.plh.pkix.core.utils.GeneralNameHolder;
+import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
 import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.store.PKISignedMessageValidator;
-import org.adorsys.plh.pkix.core.utils.store.ValidationResult;
+import org.bouncycastle.asn1.DERGeneralizedTime;
 import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.cmp.GeneralPKIMessage;
 import org.bouncycastle.cert.cmp.ProtectedPKIMessage;
-import org.bouncycastle.cert.jcajce.JcaCertStoreBuilder;
 import org.bouncycastle.i18n.ErrorBundle;
-import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 
 /**
  * First check the message for conformity. In case of a conformity error,
@@ -40,18 +38,24 @@ public class PkiMessageChecker {
 	
 	private static final String RESOURCE_NAME = CMPMessageValidatorMessages.class.getName();
 	
-	private KeyStoreWraper keyStoreWraper;
-	
 	private final BuilderChecker checker = new BuilderChecker(PkiMessageChecker.class);
-	public CertificateValidatingProcessingResult<ProtectedPKIMessage> check(PKIMessage pkiMessage){
-		checker.checkDirty()
-			.checkNull(keyStoreWraper, pkiMessage);
+	public CertificateValidatingProcessingResult<ProtectedPKIMessage> check(
+			PKIMessage pkiMessage, ContactManager contactManager){
+		checker.checkNull(contactManager,pkiMessage);
 		
 		GeneralPKIMessage generalPKIMessage = new GeneralPKIMessage(pkiMessage);
+		
+		if(!generalPKIMessage.hasProtection()){
+			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_missingProtection);
+			throw new PlhUncheckedException(msg);
+		}
+		
 		ProcessingResults<ProtectedPKIMessage> r = 
 				new PkiMessageConformity()
 					.withGeneralPKIMessage(generalPKIMessage)
 					.check();
+		
 		CertificateValidatingProcessingResult<ProtectedPKIMessage> result = new CertificateValidatingProcessingResult<ProtectedPKIMessage>(r);
 		if(result.hasError()){
 			return new CertificateValidatingProcessingResult<ProtectedPKIMessage>(result);
@@ -61,68 +65,50 @@ public class PkiMessageChecker {
 
 		X509CertificateHolder[] certificates = protectedPKIMessage.getCertificates();
 		GeneralName sender = protectedPKIMessage.getHeader().getSender();
-		GeneralNameHolder senderHolder = new GeneralNameHolder(sender);
-		X500Name senderX500Name = senderHolder.getX500Name();
+		X500Name senderX500Name = X500Name.getInstance(sender.getName());
 		X509CertificateHolder senderCertificate = null;
 		// first certificate if in chain must be for the sender
 		if(certificates!=null && certificates.length>0){
 			senderCertificate = certificates[0];
 			if(!senderX500Name.equals(senderCertificate.getSubject())){
 				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"CMPMessageValidatorMessages.certificate.senderNotMatchingCertificate",
+						CMPMessageValidatorMessages.CMPMessageValidatorMessages_certificate_senderNotMatchingCertificate,
 						new Object[]{senderX500Name,senderCertificate.getSubject()});
 				result.addNotification(msg);
 			}
 		} else {
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					"CMPMessageValidatorMessages.conformity.notCertificateSentWithMessage");
+					CMPMessageValidatorMessages.CMPMessageValidatorMessages_conformity_notCertificateSentWithMessage);
 			result.addError(msg);
 			return result;// stop processing, missing certificate
 		}
 
-		JcaCertStoreBuilder jcaCertStoreBuilder = new JcaCertStoreBuilder();
-		for (X509CertificateHolder x509CertificateHolder : certificates) {
-			jcaCertStoreBuilder = jcaCertStoreBuilder.addCertificate(x509CertificateHolder);
-		}		
-		CertStore certStore;
-		try {
-			certStore = jcaCertStoreBuilder.build();
-		} catch (GeneralSecurityException e) {
-			throw new IllegalStateException(e);
-		}
-		PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, null);
+		PKIXParameters params = PKIXParametersFactory.makeParams(
+				contactManager.getTrustAnchors(),
+				contactManager.getCrl(),
+				contactManager.findCertStores(certificates));
 
 		// Validate certificate.
 		List<X509CertificateHolder> signerX509CertificateHolders = Arrays.asList(senderCertificate);
+		Date signingTime = null;
+		DERGeneralizedTime messageTime = protectedPKIMessage.getHeader().getMessageTime();
+		if(messageTime!=null){
+			try {
+				signingTime = messageTime.getDate();
+			} catch (ParseException e) {
+				signingTime = new Date();
+			}
+		} else {
+			signingTime = new Date();
+		}
 		PKISignedMessageValidator signedMessageValidator = new PKISignedMessageValidator()
-			.withCerts(certStore)
+			.withCerts(V3CertificateUtils.createCertStore(certificates))
 			.withPKIXParameters(params)
 			.withSignerCertificates(signerX509CertificateHolders)
-			.validate();
+			.validate(signingTime);
 		
-		ValidationResult validationResult;
-		try {
-			validationResult = signedMessageValidator.getValidationResult(senderCertificate);
-			result.setValidationResult(validationResult);
-			result.setCertificateHolder(senderCertificate);
-			// verify request
-			ProcessingResults<Boolean> verifyResult = 
-					new RequestVerifier2()
-						.withCertificateHolder(senderCertificate)
-						.withProtectedPKIMessage(protectedPKIMessage)
-						.verify();
-			validationResult.getErrors().addAll(verifyResult.getErrors());
-			validationResult.getNotifications().addAll(verifyResult.getNotifications());
-			validationResult.setSignVerified(verifyResult.getReturnValue());
-		} catch (SignedMailValidatorException e) {
-			ErrorBundle errorMessage = e.getErrorMessage();
-			result.addError(errorMessage);
-		}
-		
+		result.setValidator(signedMessageValidator);
+
 		return result;
-	}
-	public PkiMessageChecker withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
-		return this;
 	}
 }

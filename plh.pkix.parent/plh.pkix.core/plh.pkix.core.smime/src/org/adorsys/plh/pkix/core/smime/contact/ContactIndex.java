@@ -1,10 +1,14 @@
 package org.adorsys.plh.pkix.core.smime.contact;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.adorsys.plh.pkix.core.utils.KeyStoreAlias;
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.x500.X500Name;
 
 /**
  * Simple index file of all contacts maintained by an end entity.
@@ -38,29 +42,83 @@ import java.util.Set;
 public class ContactIndex {
 	
 	private Map<String, String> email2KeyStoreId = new HashMap<String, String>();
-	private Map<String, List<String>> keyStoreId2Emails = new HashMap<String, List<String>>();
-	
-	public ContactIndex(ContactManager contactManager) {
-	}
+	private Map<String, Set<String>> keyStoreId2Emails = new HashMap<String, Set<String>>();
+	private Map<KeyStoreAlias, String> keyAlias2KeyStoreId = new HashMap<KeyStoreAlias, String>();
+	private Map<String, String> publicKeyId2KeyStoreId = new HashMap<String, String>();
+	private Map<String, String> subjectKeyId2KeyStoreId = new HashMap<String, String>();
+	private Map<X500Name, String> caKeyStores = new HashMap<X500Name, String>();
 
-	public void addContact(String email, String keyStoreId){
-		if(email2KeyStoreId.containsKey(email)) return;
-		email2KeyStoreId.put(email, keyStoreId);
-		if(keyStoreId2Emails.containsKey(keyStoreId)){
-			List<String> list = keyStoreId2Emails.get(keyStoreId);
-			if(!list.contains(email))list.add(email);
-		} else {
-			ArrayList<String> list = new ArrayList<String>();
-			list.add(email);
-			keyStoreId2Emails.put(keyStoreId, list);
+	public void addContact(List<String> emails, KeyStoreAlias keyStoreAlias, String keyStoreId){
+		for (String email : emails) {
+			String keyStoreIdFoud = email2KeyStoreId.get(email);
+			if(keyStoreIdFoud!=null && !StringUtils.equalsIgnoreCase(keyStoreId, keyStoreIdFoud))
+				throw new IllegalArgumentException("Email in use by key store: "+keyStoreIdFoud + " so it can not be indexed for " + keyStoreId);
 		}
+		
+		String keyStoreIdFound = keyAlias2KeyStoreId.get(keyStoreAlias);
+		if(keyStoreIdFound!=null && !StringUtils.equalsIgnoreCase(keyStoreIdFound, keyStoreId)){
+			throw new IllegalArgumentException("key alias already included in keystore : "+keyStoreIdFound + 
+					" so it can not be indexed for " + keyStoreId);
+		}
+		
+		String publicKeyIdHex = keyStoreAlias.getPublicKeyIdHex();
+		keyStoreIdFound = publicKeyId2KeyStoreId.get(publicKeyIdHex);
+		if(keyStoreIdFound!=null && !StringUtils.equalsIgnoreCase(keyStoreIdFound, keyStoreId)){
+			throw new IllegalArgumentException("public key id already included in keystore : "+keyStoreIdFound + 
+					" so it can not be indexed for " + keyStoreId);
+		}
+
+		String subjectKeyIdHex = keyStoreAlias.getSubjectKeyIdHex();
+		keyStoreIdFound = subjectKeyId2KeyStoreId.get(subjectKeyIdHex);
+		if(keyStoreIdFound!=null && !StringUtils.equalsIgnoreCase(keyStoreIdFound, keyStoreId)){
+			throw new IllegalArgumentException("subject key id already included in keystore : "+keyStoreIdFound + 
+					" so it can not be indexed for " + keyStoreId);
+		}
+		
+		Set<String> emailSet = keyStoreId2Emails.get(keyStoreId);
+		if(emailSet==null){
+			emailSet = new HashSet<String>();
+			keyStoreId2Emails.put(keyStoreId, emailSet);
+		}
+		for (String email : emails) {
+			email2KeyStoreId.put(email, keyStoreId);
+			emailSet.add(email);
+		}
+		keyAlias2KeyStoreId.put(keyStoreAlias, keyStoreId);
+		publicKeyId2KeyStoreId.put(publicKeyIdHex, keyStoreId);
+		subjectKeyId2KeyStoreId.put(subjectKeyIdHex, keyStoreId);
 	}
 	
-	public String getKeyStoreId(String email){
+	public String findKeyStoreIdByEmail(String email){
 		return email2KeyStoreId.get(email);
 	}
 
-	public Set<String> listContacts() {
+	public Set<String> listEmailContacts() {
 		return email2KeyStoreId.keySet();
+	}
+	
+	public Set<KeyStoreAlias> keyStoreAliases(){
+		return keyAlias2KeyStoreId.keySet();
+	}
+	
+	public String findByKeyStoreAlias(KeyStoreAlias keyStoreAlias){
+		return keyAlias2KeyStoreId.get(keyStoreAlias);
+	}
+	
+	public String findByPublicKeyId(String publicKeyIdHex){
+		return publicKeyId2KeyStoreId.get(publicKeyIdHex);
+	}
+	
+	public String findBySubjectKeyId(String subjectKeyIdHex){
+		return subjectKeyId2KeyStoreId.get(subjectKeyIdHex);
+	}
+
+	public String getCaKeyStoreId(X500Name subject) {
+		return caKeyStores .get(subject);
+		
+	}
+
+	public void putCaKeyStoreId(X500Name subject, String keyStoreId) {
+		caKeyStores.put(subject, keyStoreId);
 	}
 }

@@ -7,6 +7,8 @@ Bundle-Vendor: Adorsys
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: org.adorsys.plh.pkix.core.utils,
  org.adorsys.plh.pkix.core.utils.action,
+ org.adorsys.plh.pkix.core.utils.asn1,
+ org.adorsys.plh.pkix.core.utils.contact,
  org.adorsys.plh.pkix.core.utils.exception,
  org.adorsys.plh.pkix.core.utils.jca,
  org.adorsys.plh.pkix.core.utils.store,

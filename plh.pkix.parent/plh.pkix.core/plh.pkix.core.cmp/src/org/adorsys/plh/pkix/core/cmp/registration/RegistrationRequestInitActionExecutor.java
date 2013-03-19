@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.Random;
 
 import org.adorsys.plh.pkix.core.cmp.certrequest.CertRequestMessages;
-import org.adorsys.plh.pkix.core.cmp.stores.OutgoingRequest;
+import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
 import org.adorsys.plh.pkix.core.utils.UUIDUtils;
@@ -37,48 +37,52 @@ public class RegistrationRequestInitActionExecutor {
 	private static Random rnd = new Random();
 	
 	private final BuilderChecker checker = new BuilderChecker(RegistrationRequestInitActionExecutor.class);
-	public ProcessingResults<OutgoingRegistrationRequestData> build(PrivateKeyEntry privateKeyEntry) 
+	public ProcessingResults<CMPRequest> build(PrivateKeyEntry privateKeyEntry) 
 	{
 		checker.checkDirty();
-		
-		X509CertificateHolder subjectCertificate = V3CertificateUtils.getX509CertificateHolder(privateKeyEntry.getCertificate());
-		X500Name subjectDN = X500NameHelper.readSubjectDN(subjectCertificate);
-		CertTemplate certTemplate = new CertTemplateBuilder()
-        	.setSubject(subjectDN)
-        	.setIssuer(subjectDN).build();
-
-		ContentSigner senderSigner = V3CertificateUtils.getContentSigner(privateKeyEntry.getPrivateKey(),"MD5WithRSAEncryption");
-
-		BigInteger probablePrime = BigInteger.probablePrime(9, rnd);
-		ASN1Integer certReqId = new ASN1Integer(probablePrime);
-		CertRequest certRequest = new CertRequest(certReqId, certTemplate, null);
-		CertReqMsg certReqMsg = new CertReqMsg(certRequest, null, null);
-        CertReqMessages certReqMessages = new CertReqMessages(new CertReqMsg[]{certReqMsg});
-        byte[] publicKeyIdentifier = KeyIdUtils.createPublicKeyIdentifierAsByteString(subjectCertificate);
-
-        ProcessingResults<OutgoingRegistrationRequestData> processingResults = new ProcessingResults<OutgoingRegistrationRequestData>();
-        ProtectedPKIMessage mainMessage;
+        ProcessingResults<CMPRequest> processingResults = new ProcessingResults<CMPRequest>();
 		try {
-			mainMessage = new ProtectedPKIMessageBuilder(new GeneralName(subjectDN), new GeneralName(subjectDN))
-			                                          .setBody(new PKIBody(PKIBody.TYPE_INIT_REQ, certReqMessages))
-			                                          .addCMPCertificate(subjectCertificate)
-			                                          .setMessageTime(new Date())
-			                                          .setSenderKID(publicKeyIdentifier)
-			                                          .setRecipKID(publicKeyIdentifier)
-												      .setSenderNonce(UUIDUtils.newUUIDAsBytes())
-												      .setTransactionID(UUIDUtils.newUUIDAsBytes())
-			                                          .build(senderSigner);
-		} catch (CMPException e) {
-            ErrorBundle msg = new ErrorBundle(CertRequestMessages.class.getName(),
-            		CertRequestMessages.CertRequestMessages_generate_generalCMPException,
-                    new Object[] { e.getMessage(), e , e.getClass().getName()});
-            throw new PlhUncheckedException(msg, e);
+			X509CertificateHolder subjectCertificate = V3CertificateUtils.getX509CertificateHolder(privateKeyEntry.getCertificate());
+			X500Name subjectDN = X500NameHelper.readSubjectDN(subjectCertificate);
+			CertTemplate certTemplate = new CertTemplateBuilder()
+	        	.setSubject(subjectDN)
+	        	.setIssuer(subjectDN).build();
+	
+			ContentSigner senderSigner = V3CertificateUtils.getContentSigner(privateKeyEntry.getPrivateKey(),"MD5WithRSAEncryption");
+	
+			BigInteger probablePrime = BigInteger.probablePrime(9, rnd);
+			ASN1Integer certReqId = new ASN1Integer(probablePrime);
+			CertRequest certRequest = new CertRequest(certReqId, certTemplate, null);
+			CertReqMsg certReqMsg = new CertReqMsg(certRequest, null, null);
+	        CertReqMessages certReqMessages = new CertReqMessages(new CertReqMsg[]{certReqMsg});
+	        byte[] publicKeyIdentifier = KeyIdUtils.createPublicKeyIdentifierAsByteString(subjectCertificate);
+	
+	        ProtectedPKIMessage mainMessage;
+			try {
+				mainMessage = new ProtectedPKIMessageBuilder(new GeneralName(subjectDN), new GeneralName(subjectDN))
+				                                          .setBody(new PKIBody(PKIBody.TYPE_INIT_REQ, certReqMessages))
+				                                          .addCMPCertificate(subjectCertificate)
+				                                          .setMessageTime(new Date())
+				                                          .setSenderKID(publicKeyIdentifier)
+				                                          .setRecipKID(publicKeyIdentifier)
+													      .setSenderNonce(UUIDUtils.newUUIDAsBytes())
+													      .setTransactionID(UUIDUtils.newUUIDAsBytes())
+				                                          .build(senderSigner);
+			} catch (CMPException e) {
+	            ErrorBundle msg = new ErrorBundle(CertRequestMessages.class.getName(),
+	            		CertRequestMessages.CertRequestMessages_generate_generalCMPException,
+	                    new Object[] { e.getMessage(), e , e.getClass().getName()});
+	            throw new PlhUncheckedException(msg, e);
+			}
+			PKIMessage pkiMessage = mainMessage.toASN1Structure();
+			CMPRequest registrationRequest = 
+					new CMPRequest(pkiMessage.getHeader().getTransactionID(), 
+							new DERGeneralizedTime(new Date()));
+			registrationRequest.setPkiMessage(pkiMessage);
+			processingResults.setReturnValue(registrationRequest);
+		} catch(PlhUncheckedException e){
+			processingResults.addError(e.getErrorMessage());
 		}
-		PKIMessage pkiMessage = mainMessage.toASN1Structure();
-		OutgoingRequest certificationRequest = 
-				new OutgoingRequest(certReqId, pkiMessage, new DERGeneralizedTime(new Date()));
-		OutgoingRegistrationRequestData registrationRequestData = new OutgoingRegistrationRequestData(certificationRequest);
-		processingResults.setReturnValue(registrationRequestData);
 		return processingResults;
 	}
 }

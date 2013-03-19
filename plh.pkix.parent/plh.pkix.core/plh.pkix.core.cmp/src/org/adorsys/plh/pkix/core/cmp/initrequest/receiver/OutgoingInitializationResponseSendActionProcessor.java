@@ -6,7 +6,7 @@ import java.util.concurrent.Executor;
 import org.adorsys.plh.pkix.core.cmp.CMPMessenger;
 import org.adorsys.plh.pkix.core.cmp.message.ExecutorConstants;
 import org.adorsys.plh.pkix.core.cmp.stores.IncomingRequest;
-import org.adorsys.plh.pkix.core.cmp.stores.OutgoingRequest;
+import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.action.ActionProcessor;
@@ -38,12 +38,12 @@ public class OutgoingInitializationResponseSendActionProcessor implements Action
 				try {
 					cmpMessenger.send(responseMessage);
 					incomingRequest.setLastReply(now);
-					incomingRequest.setStatus(new DERIA5String(OutgoingRequest.STATUS_OK));
-					initializationRequests.storeRequest(incomingRequest.getCertReqId().getPositiveValue(), requestData);
+					incomingRequest.setStatus(new DERIA5String(CMPRequest.STATUS_OK));
+					initializationRequests.storeRequest(requestData);
 				} catch(Exception e){
 					incomingRequest.setLastReply(now);
-					incomingRequest.setStatus(new DERIA5String(OutgoingRequest.STATUS_ERROR + e.getMessage()));
-					initializationRequests.storeRequest(incomingRequest.getCertReqId().getPositiveValue(), requestData);
+					incomingRequest.setStatus(new DERIA5String(CMPRequest.STATUS_ERROR + e.getMessage()));
+					initializationRequests.storeRequest(requestData);
 				}
 			}
 		});

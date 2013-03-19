@@ -5,6 +5,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
 import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
@@ -115,16 +117,22 @@ public class KeyIdUtils {
     
 	public static String hexEncode(byte[] keyIdentifier){
 		if(keyIdentifier==null) return null;
-    	byte[] hexEncoded = Hex.encode(keyIdentifier);
-    	String result = new String(hexEncoded).toUpperCase();
-    	return result;    	
+    	return new String(Hex.encode(keyIdentifier)).toUpperCase();
     }
-    
+
+	public static String hexEncode(ASN1OctetString octetString){
+		if(octetString==null) return null;
+    	return new String(Hex.encode(octetString.getOctets())).toUpperCase();
+    }
+	
     public static String readSerialNumberAsString(X509CertificateHolder certHldr){
     	if(certHldr==null) return null;
     	BigInteger serialNumber = certHldr.getSerialNumber();
     	return serialNumber.toString(16).toUpperCase();
     }
 
-    
+    public static String hexEncode(ASN1Integer value){
+    	if(value==null) return null;
+    	return value.getPositiveValue().toString(16);
+    }
 }

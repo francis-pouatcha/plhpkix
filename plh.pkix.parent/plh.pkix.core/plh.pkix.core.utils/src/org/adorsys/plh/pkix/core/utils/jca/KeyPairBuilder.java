@@ -41,11 +41,11 @@ public class KeyPairBuilder {
 
 		KeyPairAndCertificateHolder caKeyPairHolder = generateSelfSignedCaKeyPair();
 		X509Certificate caCertificate = V3CertificateUtils.getX509JavaCertificate(caKeyPairHolder.getSubjectCertificateHolder());
-		keyStoreWraper.setKeyEntry(caKeyPairHolder.getKeyPair().getPrivate(), new Certificate[]{caCertificate});
+		keyStoreWraper.setPrivateKeyEntry(caKeyPairHolder.getKeyPair().getPrivate(), new Certificate[]{caCertificate});
 		
 		KeyPairAndCertificateHolder messageKeyPair = generateSelfCertMessageKeyPair(caKeyPairHolder);
 		X509Certificate messageCert = V3CertificateUtils.getX509JavaCertificate(messageKeyPair.getSubjectCertificateHolder());
-		keyStoreWraper.setKeyEntry(messageKeyPair.getKeyPair().getPrivate(), new Certificate[]{messageCert,caCertificate});
+		keyStoreWraper.setPrivateKeyEntry(messageKeyPair.getKeyPair().getPrivate(), new Certificate[]{messageCert,caCertificate});
 		
 		return messageKeyPair.getSubjectCertificateHolder();
 	}

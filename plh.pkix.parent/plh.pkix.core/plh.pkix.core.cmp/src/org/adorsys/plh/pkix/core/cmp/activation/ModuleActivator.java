@@ -17,7 +17,7 @@ public abstract class ModuleActivator {
 	 * 
 	 * @return
 	 */
-	public abstract ActionProcessor getIncommingProcessorClass();
+	public abstract ActionProcessor getIncommingProcessor();
 	
 	public abstract Integer getIncomingMessageType();
 }

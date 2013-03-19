@@ -6,10 +6,12 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.UUID;
 
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.engines.CMSDecryptor;
 import org.adorsys.plh.pkix.core.smime.engines.CMSEncryptor;
 import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
@@ -26,11 +28,13 @@ public class CMSEncryptorTest {
 	public void test() throws Exception {
 
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		X509CertificateHolder messageKeyCertificate = new KeyPairBuilder()
+				new KeyPairBuilder()
 				.withEndEntityName(subjectX500Name)
 				.withKeyStoreWraper(keyStoreWraper)
 				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messageKeyCertificate);
+
+		ContactManager contactManager = new ContactManagerImpl(keyStoreWraper, null);
+		PrivateKeyEntry privateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		X509CertificateHolder subjectCertificate = new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
 		X509Certificate x509Certificate = V3CertificateUtils.getX509JavaCertificate(subjectCertificate);
 
@@ -53,7 +57,7 @@ public class CMSEncryptorTest {
 		CMSPart encryptedPartIn = CMSPart.instanceFrom(encryptedFile);
 		CMSPart decryptedPart = new CMSDecryptor()
 			.withInputPart(encryptedPartIn)
-			.withKeyStoreWraper(keyStoreWraper)
+			.withContactManager(contactManager)
 			.decrypt();
 		encryptedPartIn.dispose();
 		

@@ -1,6 +1,7 @@
 package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
@@ -29,14 +30,12 @@ public class InitializationResponseAcceptActionPreProcessor implements ActionPro
 		
 		checker.checkNull(actionHandler);
 
-		ProcessingResults<List<X509CertificateHolder>> processingResults = 
+		ProcessingResults<List<List<X509CertificateHolder>>> processingResults = 
 				new InitializationResponseAcceptActionExecutor()
 				.withActionContext(actionContext)
 				.execute();
 
-		InitializationResponseAcceptPostAction postAction = new InitializationResponseAcceptPostAction(actionContext, processingResults);
-		List<Action> actions = new ArrayList<Action>();
-		actions.add(postAction);
-		actionHandler.handle(actions);
+		Action postAction = new InitializationResponseAcceptPostAction(actionContext, processingResults);
+		actionHandler.handle(Arrays.asList(actions));
 	}
 }

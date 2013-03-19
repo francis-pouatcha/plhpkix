@@ -11,6 +11,7 @@ import org.adorsys.plh.pkix.core.cmp.initrequest.sender.InitializationRequestFie
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 public class SingEncryptScenarioTests {
@@ -18,10 +19,16 @@ public class SingEncryptScenarioTests {
 	static final String srcFile1 = "test/resources/rfc4210.pdf";
 	static final String srcFile2 = "test/resources/rfc5652CMS.pdf";
 	
+	static File workspaceDir = new File("target/SingEncryptScenarioTests/testTimAndAlex");
+
+	@AfterClass
+	public static void cleanUp(){
+		FileUtils.deleteQuietly(workspaceDir);
+	}
+	
 	@Test
 	public void testTimAndAlex() throws IOException {
 		
-		File workspaceDir = new File("target/SingEncryptScenarioTests/testTimAndAlex");
 		CMPMessenger cmpMessenger = new InMemoryCMPMessenger();
 		
 		CMPandCMSClient certAuthClient = new CMPandCMSClient(cmpMessenger, workspaceDir, 
@@ -39,6 +46,11 @@ public class SingEncryptScenarioTests {
 		CMPAccount alexesAccount = alexClient.newAccount("Alex Tester", "alex@adorsys.com", "AlexesAccountPassword".toCharArray());
 		alexesAccount.registerAccount();
 		
+		try {
+			Thread.currentThread().sleep(5000);
+		} catch (InterruptedException e) {
+			// Noop
+		}
 		
 		InitializationRequestFieldHolder f = new InitializationRequestFieldHolder();
 		f.setReceiverEmail("certAuth@adorsys.com");
@@ -47,7 +59,7 @@ public class SingEncryptScenarioTests {
 		f.setSubjectAltNames(subjectAltNames);
 		// certification request
 		timsAccount.sendInitializationRequest(f);
-		FileUtils.deleteQuietly(workspaceDir);
+		
 	}		
 //		String caCN="certAuth@plpkixhtest.biz";
 //		CMPandCMSClient caClient = new CMPandCMSClient(clients);

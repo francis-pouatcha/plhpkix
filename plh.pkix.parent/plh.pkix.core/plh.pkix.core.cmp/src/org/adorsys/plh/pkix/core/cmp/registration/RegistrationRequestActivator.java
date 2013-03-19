@@ -14,13 +14,12 @@ public class RegistrationRequestActivator extends ModuleActivator {
 
 	@Override
 	protected void activate(ActionContext actionContext, FileWrapper accountDir) {
-		actionContext.put(OutgoingRegistrationRequests.class, new OutgoingRegistrationRequests(accountDir));
-		actionContext.put(RegsitrationRequestInitActionProcessor.class, new RegsitrationRequestInitActionProcessor());
+		actionContext.put(RegistrationRequestInitActionProcessor.class, new RegistrationRequestInitActionProcessor());
 		actionContext.put(RegistrationRequestSendActionProcessor.class, new RegistrationRequestSendActionProcessor());		
 	}
 
 	@Override
-	public ActionProcessor getIncommingProcessorClass() {
+	public ActionProcessor getIncommingProcessor() {
 		return null;
 	}
 

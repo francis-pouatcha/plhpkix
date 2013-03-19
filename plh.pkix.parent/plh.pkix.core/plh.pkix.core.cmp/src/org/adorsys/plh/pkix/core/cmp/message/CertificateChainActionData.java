@@ -5,6 +5,7 @@ import java.io.OutputStream;
 
 import org.adorsys.plh.pkix.core.utils.action.ASN1StreamUtils;
 import org.adorsys.plh.pkix.core.utils.action.ActionData;
+import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertificateChain;
 
 /**
  * We can use a key store to store a list of certificates.
@@ -14,17 +15,17 @@ import org.adorsys.plh.pkix.core.utils.action.ActionData;
  */
 public class CertificateChainActionData implements ActionData {
 	
-	private CertificateChain certificateChain;
+	private ASN1CertificateChain certificateChain;
 
-	public CertificateChainActionData(CertificateChain certificateChain) {
+	public CertificateChainActionData(ASN1CertificateChain certificateChain) {
 		this.certificateChain = certificateChain;
 	}
 
-	public CertificateChain getCertificateChain() {
+	public ASN1CertificateChain getCertificateChain() {
 		return certificateChain;
 	}
 
-	public void setCertificateChain(CertificateChain certificateChain) {
+	public void setCertificateChain(ASN1CertificateChain certificateChain) {
 		this.certificateChain = certificateChain;
 	}
 

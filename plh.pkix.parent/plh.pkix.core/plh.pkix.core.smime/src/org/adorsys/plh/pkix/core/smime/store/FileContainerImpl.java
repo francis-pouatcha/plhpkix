@@ -16,24 +16,27 @@ import org.adorsys.plh.pkix.core.smime.utils.CloseSubstreamsOutputStream;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.store.FileWrapper;
 import org.adorsys.plh.pkix.core.utils.store.FilesContainer;
 import org.bouncycastle.cert.X509CertificateHolder;
 
 public class FileContainerImpl implements FilesContainer {
 
+	private final ContactManager contactManager;
 	
 	private final PrivateKeyEntry containerPrivateKeyEntry;
 	private final File rootDirectory;
 
 
 	private final BuilderChecker checker = new BuilderChecker(FileContainerImpl.class);
-	public FileContainerImpl(PrivateKeyEntry containerPrivateKeyEntry,
+	public FileContainerImpl(ContactManager contactManager,
 			File rootDirectory) {
-		checker.checkNull(containerPrivateKeyEntry, rootDirectory);
-		this.containerPrivateKeyEntry = containerPrivateKeyEntry;
+		checker.checkNull(contactManager, rootDirectory);
+		this.contactManager = contactManager;
 		this.rootDirectory = rootDirectory;
 		this.rootDirectory.mkdirs();
+		this.containerPrivateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 	}
 
 	@Override
@@ -49,7 +52,7 @@ public class FileContainerImpl implements FilesContainer {
 			throw new IllegalStateException(e);
 		}
 		return new CMSStreamedDecryptorVerifier()
-			.withPrivateKeyEntry(containerPrivateKeyEntry)
+			.withContactManager(contactManager)
 			.withInputStream(signedEncryptedInputStream);
 	}
 

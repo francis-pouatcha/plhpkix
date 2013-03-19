@@ -6,7 +6,7 @@ import java.util.Collection;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.bouncycastle.cms.KEKRecipientId;
 import org.bouncycastle.cms.KeyTransRecipientId;
 import org.bouncycastle.cms.Recipient;
@@ -17,11 +17,11 @@ import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 
 public class RecipientSelector {
 	private Collection<RecipientInformation> recipientInfosColection; 
-	private KeyStoreWraper keyStoreWraper;
+	private ContactManager contactManager;
 	
 	private final BuilderChecker checker = new BuilderChecker(RecipientSelector.class);
 	public RecipientAndRecipientInfo select(){
-		checker.checkDirty().checkNull(keyStoreWraper, recipientInfosColection)
+		checker.checkDirty().checkNull(contactManager, recipientInfosColection)
 			.checkEmpty(recipientInfosColection);
         RecipientInformation recipientInformation = null;
         PrivateKeyEntry privateKeyEntry = null;
@@ -32,12 +32,12 @@ public class RecipientSelector {
             RecipientId recipientId = recipientInformation.getRID();
             if(recipientId instanceof KeyTransRecipientId){
                 privateKeyEntry = new PrivateKeySelector()
-            	.withKeyStoreWraper(keyStoreWraper)
+            	.withContactManager(contactManager)
             	.withRecipientInformation(recipientInformation)
             	.select();
             } else if (recipientId instanceof KEKRecipientId){
             	secretKeyEntry = new SecretKeySelector()
-            	.withKeyStoreWraper(keyStoreWraper)
+            	.withContactManager(contactManager)
             	.withRecipientInformation(recipientInformation)
             	.select();
             }
@@ -60,10 +60,8 @@ public class RecipientSelector {
 		this.recipientInfosColection = recipientInfosColection;
 		return this;
 	}
-	public RecipientSelector withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
+	public RecipientSelector withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
-	
-	
 }

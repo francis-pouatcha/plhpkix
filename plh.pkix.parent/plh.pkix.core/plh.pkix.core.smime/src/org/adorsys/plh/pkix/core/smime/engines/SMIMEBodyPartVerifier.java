@@ -1,34 +1,23 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertStore;
-import java.security.cert.CertificateException;
 import java.security.cert.PKIXParameters;
-import java.security.cert.X509CRL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 import javax.mail.MessagingException;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 
 import org.adorsys.plh.pkix.core.smime.utils.PartUtils;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
-import org.adorsys.plh.pkix.core.utils.store.EmailAddressExtractor;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
-import org.bouncycastle.cert.X509CertificateHolder;
+import org.adorsys.plh.pkix.core.utils.store.CertStoreUtils;
+import org.adorsys.plh.pkix.core.utils.store.EmailSignerList;
+import org.adorsys.plh.pkix.core.utils.store.ExpectedSignerList;
 import org.bouncycastle.cms.CMSException;
-import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
-import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.mail.smime.SMIMEException;
 import org.bouncycastle.mail.smime.SMIMESignedParser;
 import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
@@ -39,15 +28,14 @@ import org.bouncycastle.util.Store;
 
 public class SMIMEBodyPartVerifier {
 
-	private KeyStoreWraper keyStoreWraper;
-	private X509CRL crl;
+	private ContactManager contactManager;
 	private MimeBodyPart signedBodyPart;
 
 	final BuilderChecker checker = new BuilderChecker(SMIMEBodyPartVerifier.class);
-	@SuppressWarnings("deprecation")
+
 	public CMSSignedMessageValidator<MimeBodyPart> readAndVerify() {
 		checker.checkDirty()
-			.checkNull(keyStoreWraper,signedBodyPart);
+			.checkNull(contactManager,signedBodyPart);
 		
 		SMIMESignedParser smimeSignedParser = null;
 		DigestCalculatorProvider digestCalculatorProvider;
@@ -88,68 +76,31 @@ public class SMIMEBodyPartVerifier {
 		try {
 			certificatesStore = smimeSignedParser.getCertificates();
 			signerInfos = smimeSignedParser.getSignerInfos();
-			
-			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
-			CertStore certificatesAndCRLs = smimeSignedParser.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
-			List<String> senders = new ArrayList<String>();
-	        String[] fromHeader = PartUtils.getFrom(content);
-	        processSender(fromHeader, senders);
+			PKIXParameters params = PKIXParametersFactory
+					.makeParams(
+							contactManager.getTrustAnchors(), 
+							contactManager.getCrl(), 
+							contactManager.findCertStores(CertStoreUtils.toCertHolders(certificatesStore)));
+
+			String[] fromHeader = PartUtils.getFrom(content);
 	        String[] sender = PartUtils.getSender(content);
-	        processSender(sender, senders);
+	        ExpectedSignerList signerList = new EmailSignerList(fromHeader, sender);
 
 			signedMessageValidator
-				.withSenders(senders)
-				.withCertInfoExtractor(new EmailAddressExtractor()) 
-				.withCerts(certificatesAndCRLs)
+				.withCertsFromMessage(CertStoreUtils.toCertStore(certificatesStore))
 				.withPKIXParameters(params)
 				.withSigners(signerInfos)
+				.withSignerList(signerList)
 				.validate();
 	        
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
 		} catch (SignedMailValidatorException e) {
 			throw new SecurityException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchProviderException e) {
-			throw new IllegalStateException(e);
 		}
 
-		@SuppressWarnings("rawtypes")
-		Collection signers = signerInfos.getSigners();
-        for (Object object : signers) {
-        	SignerInformation signer = (SignerInformation)object;
-        	@SuppressWarnings("rawtypes")
-			Collection certCollection = certificatesStore.getMatches(signer.getSID());
-        	for (Object object2 : certCollection) {
-        		X509CertificateHolder cert = (X509CertificateHolder)object2;
-
-        		// Verify signature
-        		boolean verified;
-				try {
-					verified = signer.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(ProviderUtils.bcProvider).build(cert));
-				} catch (OperatorCreationException e) {
-					throw new IllegalStateException(e);
-				} catch (CertificateException e) {
-					throw new IllegalStateException(e);
-				} catch (CMSException e) {
-					throw new IllegalStateException(e);
-				}
-				if(!verified) throw new SecurityException("Could not verify content.");
-			}
-		}
         signedMessageValidator.setContent(content);
         return signedMessageValidator;
-	}
-
-	public SMIMEBodyPartVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
-		return this;
-	}
-
-	public SMIMEBodyPartVerifier withCrl(X509CRL crl) {
-		this.crl = crl;
-		return this;
 	}
 
 	public SMIMEBodyPartVerifier withSignedBodyPart(MimeBodyPart signedBodyPart) {
@@ -157,19 +108,8 @@ public class SMIMEBodyPartVerifier {
 		return this;
 	}
 
-	private void processSender(String[] fromHeader, final List<String> senders){
-		if(fromHeader!=null){
-			for (String from : fromHeader) {
-				InternetAddress[] parsedHeader;
-				try {
-					parsedHeader = InternetAddress.parseHeader(from, true);
-					for (InternetAddress internetAddress : parsedHeader) {
-						senders.add(internetAddress.getAddress());
-					}
-				} catch (AddressException e) {
-					senders.add(from);
-				}
-			}
-		} 
+	public SMIMEBodyPartVerifier withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
+		return this;
 	}
 }

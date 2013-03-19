@@ -1,6 +1,5 @@
 package org.adorsys.plh.pkix.core.utils;
 
-import java.security.cert.Certificate;
 import java.util.Collection;
 
 

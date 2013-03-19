@@ -2,33 +2,23 @@ package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertStore;
-import java.security.cert.CertificateException;
 import java.security.cert.PKIXParameters;
-import java.security.cert.X509CRL;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
+import org.adorsys.plh.pkix.core.smime.utils.EnvelopedDataParserUtils;
 import org.adorsys.plh.pkix.core.smime.utils.RecipientAndRecipientInfo;
 import org.adorsys.plh.pkix.core.smime.utils.RecipientSelector;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
-import org.bouncycastle.cert.X509CertificateHolder;
+import org.adorsys.plh.pkix.core.utils.store.CertStoreUtils;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedDataParser;
 import org.bouncycastle.cms.CMSTypedStream;
 import org.bouncycastle.cms.RecipientInformation;
-import org.bouncycastle.cms.RecipientInformationStore;
-import org.bouncycastle.cms.SignerInformation;
-import org.bouncycastle.cms.SignerInformationStore;
-import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -37,34 +27,19 @@ import org.bouncycastle.util.Store;
 
 public class CMSStreamedDecryptorVerifier2 {
 	
-	private KeyStoreWraper keyStoreWraper;
-	private X509CRL crl;
+	private ContactManager contactManager;
 	private InputStream inputStream;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSStreamedDecryptorVerifier2.class);
 	public InputStream decryptingInputStream() {
-		checker.checkDirty()
-			.checkNull(keyStoreWraper, inputStream);
+		checker.checkDirty().checkNull(contactManager, inputStream);
 		
-		CMSEnvelopedDataParser cmsEnvelopedDataParser;
-		try {
-			cmsEnvelopedDataParser = new CMSEnvelopedDataParser(inputStream);
-		} catch (CMSException e) {
-			throw new IllegalArgumentException(e);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
+		CMSEnvelopedDataParser cmsEnvelopedDataParser = EnvelopedDataParserUtils.parseData(inputStream);		
 
-		RecipientInformationStore recipients = cmsEnvelopedDataParser.getRecipientInfos();		
-        @SuppressWarnings("rawtypes")
-		Collection recipientsColection = recipients.getRecipients();
-        List<RecipientInformation> recipientInfoList = new ArrayList<RecipientInformation>();
-        for (Object object : recipientsColection) {
-        	recipientInfoList.add((RecipientInformation) object);
-        }
-        
+		List<RecipientInformation> recipientInfoList = EnvelopedDataParserUtils.getRecipientInfosCollection(cmsEnvelopedDataParser);
+
         RecipientAndRecipientInfo recipientAndRecipientInfo = new RecipientSelector()
-        	.withKeyStoreWraper(keyStoreWraper)
+        	.withContactManager(contactManager)
         	.withRecipientInfosColection(recipientInfoList)
         	.select();
         
@@ -99,65 +74,30 @@ public class CMSStreamedDecryptorVerifier2 {
 	public CMSSignedMessageValidator<CMSPart> verify(){
 		checker2.checkDirty().checkNull(sp);
         Store certificatesStore;
-        SignerInformationStore signerInfos;
         CMSSignedMessageValidator<CMSPart> signedMessageValidator = new CMSSignedMessageValidator<CMSPart>();
 		try {
 			certificatesStore = sp.getCertificates();
-			signerInfos = sp.getSignerInfos();
-			
-			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
-			@SuppressWarnings("deprecation")
-			CertStore certificatesAndCRLs = sp.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
+			PKIXParameters params = PKIXParametersFactory.makeParams(
+					contactManager.getTrustAnchors(), 
+					contactManager.getCrl(), 
+					contactManager.findCertStores(CertStoreUtils.toCertHolders(certificatesStore)));
+
 			signedMessageValidator
-				.withCerts(certificatesAndCRLs)
+				.withCertsFromMessage(CertStoreUtils.toCertStore(certificatesStore))
 				.withPKIXParameters(params)
-				.withSigners(signerInfos)
+				.withSigners(sp.getSignerInfos())
 				.validate();
-	        
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
 		} catch (SignedMailValidatorException e) {
 			throw new SecurityException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchProviderException e) {
-			throw new IllegalStateException(e);
-		}
-
-		@SuppressWarnings("rawtypes")
-		Collection signers = signerInfos.getSigners();
-        for (Object object : signers) {
-        	SignerInformation signer = (SignerInformation)object;
-        	@SuppressWarnings("rawtypes")
-			Collection certCollection = certificatesStore.getMatches(signer.getSID());
-        	for (Object object2 : certCollection) {
-        		X509CertificateHolder cert = (X509CertificateHolder)object2;
-
-        		// Verify signature
-        		boolean verified;
-				try {
-					verified = signer.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(ProviderUtils.bcProvider).build(cert));
-				} catch (OperatorCreationException e) {
-					throw new IllegalStateException(e);
-				} catch (CertificateException e) {
-					throw new IllegalStateException(e);
-				} catch (CMSException e) {
-					throw new IllegalStateException(e);
-				}
-				if(!verified) throw new SecurityException("Could not verify content.");
-			}
 		}
         return signedMessageValidator;
 		
 	}
 
-	public CMSStreamedDecryptorVerifier2 withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
-		return this;
-	}
-
-	public CMSStreamedDecryptorVerifier2 withCrl(X509CRL crl) {
-		this.crl = crl;
+	public CMSStreamedDecryptorVerifier2 withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 

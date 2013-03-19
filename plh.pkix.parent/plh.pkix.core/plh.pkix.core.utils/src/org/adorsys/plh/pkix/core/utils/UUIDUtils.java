@@ -3,6 +3,9 @@ package org.adorsys.plh.pkix.core.utils;
 import java.math.BigInteger;
 import java.util.UUID;
 
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.DEROctetString;
+
 public class UUIDUtils {
 
     public static byte[] newUUIDAsBytes()
@@ -24,7 +27,7 @@ public class UUIDUtils {
             return buffer;
     }
 
-    private static byte[] uuidToBytes(UUID uuid)
+    public static byte[] uuidToBytes(UUID uuid)
     {
             long msb = uuid.getMostSignificantBits();
             long lsb = uuid.getLeastSignificantBits();
@@ -35,5 +38,9 @@ public class UUIDUtils {
     public static BigInteger toBigInteger(UUID uuid)
     {
         return new BigInteger(1, uuidToBytes(uuid));
+    }
+    
+    public static ASN1OctetString newUUIDasASN1OctetString(){
+    	return new DEROctetString(UUIDUtils.newUUIDAsBytes());
     }
 }

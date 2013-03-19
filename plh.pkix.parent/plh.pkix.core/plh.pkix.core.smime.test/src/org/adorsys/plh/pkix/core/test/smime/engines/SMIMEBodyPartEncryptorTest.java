@@ -11,9 +11,11 @@ import java.util.UUID;
 
 import javax.mail.internet.MimeBodyPart;
 
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartDecryptor;
 import org.adorsys.plh.pkix.core.smime.engines.SMIMEBodyPartEncryptor;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
 import org.adorsys.plh.pkix.core.utils.x500.X500NameHelper;
@@ -30,11 +32,12 @@ public class SMIMEBodyPartEncryptorTest {
 	@Test
 	public void test() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
-				.withEndEntityName(subjectX500Name)
-				.withKeyStoreWraper(keyStoreWraper)
-				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
+		new KeyPairBuilder()
+		.withEndEntityName(subjectX500Name)
+		.withKeyStoreWraper(keyStoreWraper)
+		.build();
+		ContactManager contactManager = new ContactManagerImpl(keyStoreWraper, null);
+		PrivateKeyEntry privateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		X509CertificateHolder subjectCertificate = new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
 		X509Certificate x509Certificate = V3CertificateUtils.getX509JavaCertificate(subjectCertificate);
 		
@@ -61,7 +64,7 @@ public class SMIMEBodyPartEncryptorTest {
 		FileInputStream encryptedBodyPartInputStream = new FileInputStream(encryptedOutputFile);
 		MimeBodyPart encryptedBodyPart2 = new MimeBodyPart(encryptedBodyPartInputStream);
 		MimeBodyPart decryptedBodyPart2 = new SMIMEBodyPartDecryptor()
-			.withKeyStoreWraper(keyStoreWraper)
+			.withContactManager(contactManager)
 			.withMimeBodyPart(encryptedBodyPart2)
 			.decrypt();
 

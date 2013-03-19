@@ -3,8 +3,6 @@ package org.adorsys.plh.pkix.core.utils.store;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.bouncycastle.cert.X509CertificateHolder;
-
 /**
  * In order to protect user data on the file system, module reading and writing file
  * can implement the file container interface.
@@ -74,8 +72,8 @@ public interface FileWrapper {
 	 * private key used to access this file.
 	 * 
 	 * @return
-	 */
 	public X509CertificateHolder loadKeyCertificate(String publicKeyIdentifier);	
+	 */
 	
 	/**
 	 * Returns the key store associated with this directory.

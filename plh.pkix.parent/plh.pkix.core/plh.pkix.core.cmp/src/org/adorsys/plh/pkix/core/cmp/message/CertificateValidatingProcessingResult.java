@@ -2,15 +2,14 @@ package org.adorsys.plh.pkix.core.cmp.message;
 
 import org.adorsys.plh.pkix.core.utils.action.ErrorsAndNotificationsHolder;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
-import org.adorsys.plh.pkix.core.utils.store.ValidationResult;
+import org.adorsys.plh.pkix.core.utils.store.PKISignedMessageValidator;
 import org.bouncycastle.cert.X509CertificateHolder;
 
 public class CertificateValidatingProcessingResult<T> extends ProcessingResults<T> {
 	
 	private X509CertificateHolder certificateHolder;
 	
-	private ValidationResult validationResult;
-	
+	private PKISignedMessageValidator validator;
 	
 	public CertificateValidatingProcessingResult() {
 		super();
@@ -30,14 +29,20 @@ public class CertificateValidatingProcessingResult<T> extends ProcessingResults<
 	public void setCertificateHolder(X509CertificateHolder certificateHolder) {
 		this.certificateHolder = certificateHolder;
 	}
-	
-	public ValidationResult getValidationResult() {
-		return validationResult;
+	public PKISignedMessageValidator getValidator() {
+		return validator;
 	}
-	
-	public void setValidationResult(ValidationResult validationResult) {
-		this.validationResult = validationResult;
+	public void setValidator(PKISignedMessageValidator validator) {
+		this.validator = validator;
 	}
-	
-	
+	@Override
+	public boolean hasError() {
+		if(validator!=null && validator.hasError()) return true;
+		return super.hasError();
+	}
+	@Override
+	public boolean hasNotification() {
+		if(validator!=null && validator.hasNotification()) return true;
+		return super.hasNotification();
+	}
 }

@@ -10,10 +10,12 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.UUID;
 
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.smime.engines.CMSPart;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedDecryptorVerifier2;
 import org.adorsys.plh.pkix.core.smime.engines.CMSStreamedSignerEncryptor;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.KeyPairBuilder;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
 import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
@@ -31,11 +33,12 @@ public class CMSStreamedSignerEncryptorTest3 {
 	@Test
 	public void test() throws Exception {
 		KeyStoreWraper keyStoreWraper = new KeyStoreWraper(null, "private key password".toCharArray(), "Keystore password".toCharArray());
-		X509CertificateHolder messagingCertificate = new KeyPairBuilder()
-				.withEndEntityName(subjectX500Name)
-				.withKeyStoreWraper(keyStoreWraper)
-				.build();
-		PrivateKeyEntry privateKeyEntry = keyStoreWraper.findPrivateKeyEntry(messagingCertificate);
+		new KeyPairBuilder()
+			.withEndEntityName(subjectX500Name)
+			.withKeyStoreWraper(keyStoreWraper)
+			.build();
+		ContactManager contactManager = new ContactManagerImpl(keyStoreWraper, null);
+		PrivateKeyEntry privateKeyEntry = contactManager.getMainMessagePrivateKeyEntry();
 		X509CertificateHolder subjectCertificate = new X509CertificateHolder(privateKeyEntry.getCertificate().getEncoded());
 		X509Certificate x509Certificate = V3CertificateUtils.getX509JavaCertificate(subjectCertificate);
 		
@@ -58,7 +61,7 @@ public class CMSStreamedSignerEncryptorTest3 {
 		InputStream signedEncryptedInputStream = new FileInputStream(signedEncryptedFile);
 		CMSStreamedDecryptorVerifier2 decryptorVerifier = new CMSStreamedDecryptorVerifier2()
 		.withInputStream(signedEncryptedInputStream)
-		.withKeyStoreWraper(keyStoreWraper);
+		.withContactManager(contactManager);
 		InputStream decryptingInputStream =  decryptorVerifier.decryptingInputStream();
 		File decryptedVerifiedFile = new File("target/rfc4210.pdf.CMSStreamedSignerEncryptorTest3.decrypted.verified");
 		FileOutputStream decryptedVerifiedFileOutputStream = new FileOutputStream(decryptedVerifiedFile);

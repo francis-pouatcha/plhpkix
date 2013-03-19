@@ -16,5 +16,4 @@ public class GenericAction extends AbstractAction {
 	public String getOutcome() {
 		return outcome;
 	}
-
 }

@@ -2,6 +2,7 @@ package org.adorsys.plh.pkix.core.utils.exception;
 
 import java.util.Locale;
 
+import org.adorsys.plh.pkix.core.utils.store.PlhPkixCoreMessages;
 import org.bouncycastle.i18n.ErrorBundle;
 
 /**
@@ -34,5 +35,18 @@ public class PlhUncheckedException extends RuntimeException {
     public ErrorBundle getErrorMessage() 
     {
         return message;
+    }
+    
+	private static final String RESOURCE_NAME = PlhPkixCoreMessages.class.getName();    
+    public static ErrorBundle toErrorMessage(Exception e, String location){
+		return new ErrorBundle(RESOURCE_NAME,
+				PlhPkixCoreMessages.PlhUncheckedException_uncaught_exception,
+				new Object[] { location, e.getMessage(),e.getClass().getName()});
+    }
+
+    public static ErrorBundle toErrorMessage(Exception e, Class<?> location){
+		return new ErrorBundle(RESOURCE_NAME,
+				PlhPkixCoreMessages.PlhUncheckedException_uncaught_exception,
+				new Object[] { location.getName(), e.getMessage(),e.getClass().getName()});
     }
 }

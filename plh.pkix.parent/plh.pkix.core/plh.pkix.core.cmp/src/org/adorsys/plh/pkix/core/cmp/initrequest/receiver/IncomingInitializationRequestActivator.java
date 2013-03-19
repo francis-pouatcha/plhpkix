@@ -23,7 +23,7 @@ public class IncomingInitializationRequestActivator extends ModuleActivator{
 	}
 
 	@Override
-	public ActionProcessor getIncommingProcessorClass() {
+	public ActionProcessor getIncommingProcessor() {
 		return incomingProcessor;
 	}
 

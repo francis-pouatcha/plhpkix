@@ -1,26 +1,19 @@
 package org.adorsys.plh.pkix.core.smime.engines;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertStore;
-import java.security.cert.CertificateException;
 import java.security.cert.PKIXParameters;
-import java.security.cert.X509CRL;
-import java.util.Collection;
 
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.ProviderUtils;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
 import org.adorsys.plh.pkix.core.utils.store.CMSSignedMessageValidator;
-import org.adorsys.plh.pkix.core.utils.store.KeyStoreWraper;
-import org.bouncycastle.cert.X509CertificateHolder;
+import org.adorsys.plh.pkix.core.utils.store.CertStoreUtils;
+import org.adorsys.plh.pkix.core.utils.store.ExpectedSignerList;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedDataParser;
 import org.bouncycastle.cms.CMSTypedStream;
-import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
-import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -29,15 +22,14 @@ import org.bouncycastle.util.Store;
 
 public class CMSVerifier {
 	
+	private ContactManager contactManager;
 	private CMSPart inputPart;
-	private KeyStoreWraper keyStoreWraper;
-	private X509CRL crl;
+	private ExpectedSignerList signerList;
 	
 	private final BuilderChecker checker = new BuilderChecker(CMSVerifier.class);
-	@SuppressWarnings("deprecation")
 	public CMSSignedMessageValidator<CMSPart> readAndVerify() throws IOException {
 		checker.checkDirty()
-			.checkNull(keyStoreWraper,inputPart);
+			.checkNull(contactManager,inputPart);
 		
         CMSSignedDataParser sp;
 		try {
@@ -59,49 +51,25 @@ public class CMSVerifier {
 		try {
 			certificatesStore = sp.getCertificates();
 			signerInfos = sp.getSignerInfos();
-			
-			PKIXParameters params = PKIXParametersFactory.makeParams(keyStoreWraper, crl);
-			CertStore certificatesAndCRLs = sp.getCertificatesAndCRLs("Collection", ProviderUtils.bcProvider);
+			PKIXParameters params = PKIXParametersFactory.makeParams(
+					contactManager.getTrustAnchors(), 
+					contactManager.getCrl(), 
+					contactManager.findCertStores(CertStoreUtils.toCertHolders(certificatesStore)));
+
 			signedMessageValidator
-				.withCerts(certificatesAndCRLs)
+				.withCertsFromMessage(CertStoreUtils.toCertStore(certificatesStore))
 				.withPKIXParameters(params)
 				.withSigners(signerInfos)
 				.withContent(outputPart)
+				.withSignerList(signerList)
 				.validate();
 	        
 		} catch (CMSException e) {
 			throw new IllegalStateException(e);
 		} catch (SignedMailValidatorException e) {
 			throw new SecurityException(e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		} catch (NoSuchProviderException e) {
-			throw new IllegalStateException(e);
 		}
 
-		@SuppressWarnings("rawtypes")
-		Collection signers = signerInfos.getSigners();
-        for (Object object : signers) {
-        	SignerInformation signer = (SignerInformation)object;
-        	@SuppressWarnings("rawtypes")
-			Collection certCollection = certificatesStore.getMatches(signer.getSID());
-        	for (Object object2 : certCollection) {
-        		X509CertificateHolder cert = (X509CertificateHolder)object2;
-
-        		// Verify signature
-        		boolean verified;
-				try {
-					verified = signer.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(ProviderUtils.bcProvider).build(cert));
-				} catch (OperatorCreationException e) {
-					throw new IllegalStateException(e);
-				} catch (CertificateException e) {
-					throw new IllegalStateException(e);
-				} catch (CMSException e) {
-					throw new IllegalStateException(e);
-				}
-				if(!verified) throw new SecurityException("Could not verify content.");
-			}
-		}
         return signedMessageValidator;
 	}
 	
@@ -110,13 +78,13 @@ public class CMSVerifier {
 		return this;
 	}
 
-	public CMSVerifier withKeyStoreWraper(KeyStoreWraper keyStoreWraper) {
-		this.keyStoreWraper = keyStoreWraper;
+	public CMSVerifier withSignerList(ExpectedSignerList signerList) {
+		this.signerList = signerList;
 		return this;
 	}
 
-	public CMSVerifier withCrl(X509CRL crl) {
-		this.crl = crl;
+	public CMSVerifier withContactManager(ContactManager contactManager) {
+		this.contactManager = contactManager;
 		return this;
 	}
 }

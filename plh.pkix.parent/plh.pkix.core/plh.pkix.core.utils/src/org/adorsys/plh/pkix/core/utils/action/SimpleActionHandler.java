@@ -10,7 +10,7 @@ public class SimpleActionHandler implements ActionHandler {
 			String outcome = action.getOutcome();
 			Class<? extends ActionProcessor> actionProcessorClass = action.getActionProcessor(outcome);
 			ActionContext actionContext = action.getActionContext();
-			ActionProcessor actionProcessor = actionContext.get(actionProcessorClass, null);
+			ActionProcessor actionProcessor = actionContext.get1(actionProcessorClass, null);
 			actionProcessor.process(actionContext);
 		}
 	}

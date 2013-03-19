@@ -1,6 +1,7 @@
 package org.adorsys.plh.pkix.core.utils;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -8,6 +9,7 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.cert.CertStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -16,6 +18,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
@@ -27,6 +30,7 @@ import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.X509Extension;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaCertStoreBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.i18n.ErrorBundle;
@@ -66,14 +70,14 @@ public class V3CertificateUtils {
 		}
 	}
 
-	public static X509Certificate getX509JavaCertificate(Certificate certificate) {
-		return getX509JavaCertificate(getX509CertificateHolder(certificate));
+	public static X509Certificate getX509JavaCertificate(org.bouncycastle.asn1.x509.Certificate certificate) {
+		return getX509JavaCertificate(new X509CertificateHolder(certificate));
 	}
 	
-	public static List<X509Certificate> convert(Certificate...certificates){
-		List<X509Certificate> list = new ArrayList<X509Certificate>();
-		for (Certificate certificate : certificates) {
-			list.add(getX509JavaCertificate(certificate));
+	public static X509Certificate[] convert(org.bouncycastle.asn1.x509.Certificate...certificates){
+		X509Certificate[] list = new X509Certificate[certificates.length];
+		for (int i = 0; i < certificates.length; i++) {
+			list[i]=getX509JavaCertificate(certificates[i]);
 		}
 		return list;
 	}
@@ -142,9 +146,17 @@ public class V3CertificateUtils {
 		
 		return KeyUsageUtils.hasAllKeyUsage(cert, KeyUsage.keyCertSign);
 	}
+	public static boolean isCaKey(Certificate cert){
+		X509CertificateHolder certificateHolder = getX509CertificateHolder(cert);
+		return isCaKey(certificateHolder);
+	}
 
 	public static boolean isSmimeKey(X509CertificateHolder cert){		
 		return KeyUsageUtils.hasAnyKeyUsage(cert, KeyUsage.nonRepudiation, KeyUsage.digitalSignature, KeyUsage.keyEncipherment);
+	}
+	public static boolean isSmimeKey(Certificate cert){
+		X509CertificateHolder certificateHolder = getX509CertificateHolder(cert);
+		return isSmimeKey(certificateHolder);
 	}
 	
 	public static final PublicKey extractPublicKey(X509CertificateHolder subjectCertificate) {
@@ -168,18 +180,6 @@ public class V3CertificateUtils {
             throw new PlhUncheckedException(msg, e);
 		}
 	}
-	
-//	public static ContentSigner getContentSigner(PrivateKey issuerPrivatekey){
-//		try {
-//			return new JcaContentSignerBuilder("SHA1WithRSA")
-//					.setProvider(ProviderUtils.bcProvider).build(issuerPrivatekey);
-//		} catch (OperatorCreationException e) {
-//            ErrorBundle msg = new ErrorBundle(PlhPkixCoreMessages.class.getName(),
-//            		PlhPkixCoreMessages.V3CertificateUtils_read_generalCertificateException,
-//                    new Object[] { e.getMessage(), e , e.getClass().getName()});
-//            throw new PlhUncheckedException(msg, e);
-//		}
-//	}
 
 	public static ContentSigner getContentSigner(PrivateKey privatekey, String algo){
 		try {
@@ -193,4 +193,85 @@ public class V3CertificateUtils {
 		}
 	}
 	
+	public static boolean isSigingCertificate(X509CertificateHolder signed,
+			X509CertificateHolder signer) {
+		// The issuer name of the signed certificate matches the subject name of the signer certificate
+		if(signed.getIssuer().equals(signer.getSubject())) return false;
+		
+		// signer certificate is a ca key
+		if(!isCaKey(signer)) return false;
+		
+		// authority key identifier of signed certificate is not null
+		AuthorityKeyIdentifier authorityKeyIdentifier = KeyIdUtils.readAuthorityKeyIdentifier(signed);
+		if(authorityKeyIdentifier==null) return false;
+		
+		// subject identifier of signer certificate is not null
+		SubjectKeyIdentifier subjectKeyIdentifier = KeyIdUtils.readSubjectKeyIdentifier(signer);
+		
+		// both match
+		if(Arrays.equals(subjectKeyIdentifier.getKeyIdentifier(), authorityKeyIdentifier.getKeyIdentifier())) return false;
+		
+		// including serial
+		if(!signer.getSerialNumber().equals(authorityKeyIdentifier.getAuthorityCertSerialNumber())) return false;
+		
+		if(!verify(signed, signer))return false;	
+		// then everything is ok
+		return true;
+	}
+	
+	private static boolean verify(X509CertificateHolder signed,
+			X509CertificateHolder signer) {
+		X509Certificate signedJavaCertificate = getX509JavaCertificate(signed);
+		X509Certificate signerJavaCertificate = getX509JavaCertificate(signer);
+		try {
+			signedJavaCertificate.verify(signerJavaCertificate.getPublicKey());
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public static List<List<X509CertificateHolder>> splitCertList(List<X509CertificateHolder> certList){
+		LinkedList<X509CertificateHolder> currentList = new LinkedList<X509CertificateHolder>();
+		List<List<X509CertificateHolder>> result = new ArrayList<List<X509CertificateHolder>>();;
+		for (X509CertificateHolder signed : certList) {
+			if (currentList.isEmpty()) {
+				currentList.add(signed);continue;
+			}
+			X509CertificateHolder signer = currentList.getLast();
+			if(V3CertificateUtils.isSigingCertificate(signed, signer)){
+				currentList.add(signer); continue;
+			}
+			if(!currentList.isEmpty()){
+				result.add(currentList);
+				currentList = new LinkedList<X509CertificateHolder>();
+			}
+		}
+		return result;
+	}
+	
+	public static CertStore createCertStore(X509CertificateHolder... certs){
+		return createCertStore(Arrays.asList(certs));
+	}
+	
+	public static CertStore createCertStore(List<X509CertificateHolder> certs){
+		try {
+			if(certs.isEmpty()) return null;
+			JcaCertStoreBuilder certStoreBuilder = new JcaCertStoreBuilder().setProvider(ProviderUtils.bcProvider);
+			for (X509CertificateHolder signerCertificate : certs) {
+				certStoreBuilder.addCertificate(signerCertificate);
+			}
+			return certStoreBuilder.build();
+		} catch (GeneralSecurityException e) {
+			return null;
+		}
+		
+	}
+	public static List<X509Certificate> convert(Certificate[] certificateChain) {
+		X509Certificate[] list = new X509Certificate[certificateChain.length];
+		for (int i = 0; i < certificateChain.length; i++) {
+			list[i]=(X509Certificate) certificateChain[i];
+		}
+		return Arrays.asList(list);
+	}
 }

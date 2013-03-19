@@ -164,7 +164,7 @@ public class X509CertificateBuilder {
 		BigInteger serial = UUIDUtils.toBigInteger(UUID.randomUUID());
 		X509v3CertificateBuilder v3CertGen = null;
 		if(subjectOnlyInAlternativeName && subjectAltNames!=null){
-			v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, new X500Name("cn=''"),subjectPublicKey);
+			v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, new X500Name("cn="),subjectPublicKey);
 		} else {
 			v3CertGen = new JcaX509v3CertificateBuilder(issuerDN, serial, notBefore, notAfter, subjectDN,subjectPublicKey);
 		}
