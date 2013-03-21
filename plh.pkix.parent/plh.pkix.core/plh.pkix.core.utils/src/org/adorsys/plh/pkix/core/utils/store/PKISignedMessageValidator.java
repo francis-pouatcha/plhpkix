@@ -134,7 +134,7 @@ public class PKISignedMessageValidator {
 					PlhPkixCoreMessages.SignatureValidator_wrongSigner);
 			throw new SignedMailValidatorException(msg);
 		} else {
-			return (ValidationResult) results.get(signer);
+			return results.get(signer);
 		}
 	}
 

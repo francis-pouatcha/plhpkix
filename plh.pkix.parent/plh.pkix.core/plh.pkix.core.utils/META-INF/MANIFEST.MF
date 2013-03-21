@@ -143,5 +143,5 @@ Bundle-ClassPath: lib/bcmail-jdk15on-1.47.jar,
  lib/bcprov-jdk15on-1.47.jar,
  .
 Require-Bundle: org.apache.commons.lang3;bundle-version="3.1.0",
- javax.mail;bundle-version="1.4.0",
- org.apache.commons.io;bundle-version="2.0.1"
+ org.apache.commons.io;bundle-version="2.0.1",
+ javax.mail;bundle-version="1.4.0"

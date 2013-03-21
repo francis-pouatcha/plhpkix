@@ -11,9 +11,7 @@ public interface Action {
 	public static final String CANCEL_OUTCOME = "cancel";
 	public static final String REJECT_OUTCOME = "reject";
 	public static final String DELETE_OUTCOME = "delete";
-	public static final String DELETE_AFTER_CONFIRM_OUTCOME = "deleteAfterConfirm";
-	public static final String REJECT_AFTER_CONFIRM_OUTCOME = "rejectAfterConfirm";
-	public static final String PROCESS_AFTER_CONFIRM_OUTCOME = "processAfterConfirm";
+	public static final String USER_FEEDBACK_OUTCOME = "userFedback";
 	
 	public Class<? extends ActionProcessor> getActionProcessor(String outCome);
 

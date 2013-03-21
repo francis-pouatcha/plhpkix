@@ -140,7 +140,7 @@ public class ValidationUtils {
 							.getEncoded());
 					select.setIssuer(cert.getIssuerX500Principal().getEncoded());
 				} catch (IOException e) {
-					throw new IllegalStateException(e.toString());
+					throw PlhUncheckedException.toException(e, ValidationUtils.class);
 				}
 
 				boolean userProvided = false;
@@ -195,9 +195,9 @@ public class ValidationUtils {
 			} catch (CertificateException e) {
 				// noop
 			} catch (NoSuchAlgorithmException e) {
-				throw new PlhUncheckedException(PlhUncheckedException.toErrorMessage(e, ValidationUtils.class), e);
+				throw PlhUncheckedException.toException(e, ValidationUtils.class);
 			} catch (NoSuchProviderException e) {
-				throw new PlhUncheckedException(PlhUncheckedException.toErrorMessage(e, ValidationUtils.class), e);
+				throw PlhUncheckedException.toException(e, ValidationUtils.class);
 			} catch (SignatureException e) {
 				// noop
 			}
@@ -259,11 +259,9 @@ public class ValidationUtils {
 			try {
 				certificates = certStore.getCertificates(selector);
 			} catch (CertStoreException cse) {
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+				throw PlhUncheckedException.toException(RESOURCE_NAME,
 						PlhPkixCoreMessages.SignatureValidator_exceptionRetrievingSignerCert,
-						new Object[] { cse.getMessage(), cse,
-								cse.getClass().getName() });
-				throw new PlhUncheckedException(msg, cse);
+						cse, ValidationUtils.class);
 			}
 			for (Certificate certificate : certificates) {
 				if (certificate instanceof X509Certificate)
@@ -323,7 +321,7 @@ public class ValidationUtils {
 			select.setSubject(cert.getIssuerX500Principal()
 					.getEncoded());
 		} catch (IOException e) {
-			throw new IllegalStateException(e);
+			throw PlhUncheckedException.toException(e, ValidationUtils.class);
 		}
 		byte[] authKeyIdentBytes = cert
 				.getExtensionValue(X509Extension.authorityKeyIdentifier
@@ -434,10 +432,8 @@ public class ValidationUtils {
 				}
 			}
 		} catch (Exception e) {
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-					PlhPkixCoreMessages.SignatureValidator_extKeyUsageError, new Object[] {
-							e.getMessage(), e, e.getClass().getName() });
-			errors.add(msg);
+			throw PlhUncheckedException.toException(RESOURCE_NAME,
+					PlhPkixCoreMessages.SignatureValidator_extKeyUsageError, e, ValidationUtils.class);
 		}
 	}
 	
@@ -446,15 +442,9 @@ public class ValidationUtils {
 			return (PKIXCertPathReviewer) certPathReviewerClass
 					.newInstance();
 		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException(
-					"Cannot instantiate object of type "
-							+ certPathReviewerClass.getName()
-							+ ": " + e.getMessage());
+			throw PlhUncheckedException.toException(e, ValidationUtils.class);
 		} catch (InstantiationException e) {
-			throw new IllegalArgumentException(
-					"Cannot instantiate object of type "
-							+ certPathReviewerClass.getName()
-							+ ": " + e.getMessage());
+			throw PlhUncheckedException.toException(e, ValidationUtils.class);
 		}
 	}
 	

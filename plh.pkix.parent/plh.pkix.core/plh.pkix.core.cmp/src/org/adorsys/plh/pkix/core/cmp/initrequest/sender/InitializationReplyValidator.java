@@ -1,19 +1,15 @@
 package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
-import java.security.cert.TrustAnchor;
-import java.util.Set;
-
 import org.adorsys.plh.pkix.core.cmp.certrequest.CertRequestMessages;
 import org.adorsys.plh.pkix.core.cmp.utils.OptionalValidityComparator;
 import org.adorsys.plh.pkix.core.cmp.utils.OptionalValidityHolder;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyUsageUtils;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
-import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertValidationResult;
+import org.adorsys.plh.pkix.core.utils.store.CertAndCertPath;
 import org.bouncycastle.asn1.crmf.CertTemplate;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.GeneralNames;
@@ -35,16 +31,10 @@ public class InitializationReplyValidator {
 
 	private CertTemplate certTemplate;
 
-	public void validate(final ASN1CertValidationResult certValidationResult, Set<TrustAnchor> trustAnchors){
+	public void validate(final ProcessingResults<CertAndCertPath> validationResult){
 
 		checker.checkDirty()
-			.checkNull(certTemplate,certValidationResult, trustAnchors);
-		
-		Certificate certificate = certValidationResult.getCertificate();
-		X509CertificateHolder requestedCertificate = new X509CertificateHolder(certificate);
-
-		ProcessingResults<X509CertificateHolder> validationResult = new ProcessingResults<X509CertificateHolder>();
-		validationResult.setReturnValue(requestedCertificate);
+			.checkNull(certTemplate,validationResult);
 		
 		checkIncludedSubject(validationResult);
 
@@ -65,7 +55,7 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkExtensions(
-			ProcessingResults<X509CertificateHolder> validationResult) {
+			ProcessingResults<CertAndCertPath> validationResult) {
 		Extensions certTemplateExtensions = certTemplate.getExtensions();
 
 		checkBasicConstraintExtension(certTemplateExtensions, validationResult);
@@ -80,8 +70,8 @@ public class InitializationReplyValidator {
 	
 	protected void checkAuthorityInfoAccessExtension(
 			Extensions certTemplateExtensions,
-			ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+			ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		Extension authorityInfoAccessExtension = certTemplateExtensions.getExtension(X509Extension.authorityInfoAccess);
 		if(authorityInfoAccessExtension!=null){
 			AuthorityInformationAccess authorityInformationAccess = AuthorityInformationAccess.getInstance(authorityInfoAccessExtension.getParsedValue());
@@ -99,8 +89,8 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkKeyUsageNameExtension(Extensions certTemplateExtensions,
-			ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+			ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		int keyUsage = KeyUsageUtils.getKeyUsage(certTemplateExtensions);
 		if(keyUsage>-1){
 			int keyUsage2 = KeyUsageUtils.getKeyUsage(requestedCertificate);
@@ -115,8 +105,8 @@ public class InitializationReplyValidator {
 
 	protected void checkSubjectAlternativeNameExtension(
 			Extensions certTemplateExtensions,
-			ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+			ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		Extension subjectAlternativeNameExtension = certTemplateExtensions.getExtension(X509Extension.subjectAlternativeName);
 		if(subjectAlternativeNameExtension!=null) {
 			GeneralNames subjectAltName = GeneralNames.getInstance(subjectAlternativeNameExtension.getParsedValue());
@@ -135,8 +125,8 @@ public class InitializationReplyValidator {
 
 	protected void checkBasicConstraintExtension(
 			Extensions certTemplateExtensions,
-			ProcessingResults<X509CertificateHolder> validationResult){
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+			ProcessingResults<CertAndCertPath> validationResult){
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		Extension basicConstraintsExtension = certTemplateExtensions.getExtension(X509Extension.basicConstraints);
 		BasicConstraints basicConstraints = BasicConstraints.getInstance(basicConstraintsExtension.getParsedValue());
 		if(basicConstraints!=null){
@@ -154,8 +144,8 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkSerial(
-		ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+		ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		if(certTemplate.getSerialNumber()!=null &&
 				!certTemplate.getSerialNumber().equals(requestedCertificate.getSerialNumber())){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
@@ -165,8 +155,8 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkValidity(
-			ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+			ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		if (certTemplate.getValidity()!=null){
 			OptionalValidityHolder optionalValidityFromTemplate = new OptionalValidityHolder(
 					certTemplate.getValidity());
@@ -192,8 +182,8 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkIssuer(
-		ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+		ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		if (certTemplate.getIssuer()!=null && !certTemplate.getIssuer().equals(
 				requestedCertificate.getIssuer())){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
@@ -203,8 +193,8 @@ public class InitializationReplyValidator {
 	}
 	
 	protected void checkIncludedSubject(
-		ProcessingResults<X509CertificateHolder> validationResult){
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+		ProcessingResults<CertAndCertPath> validationResult){
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		// collect modifications into a validation object and show user 
 		// for confirmation.
 		if (certTemplate.getSubject()!=null && !certTemplate.getSubject().equals(
@@ -216,8 +206,8 @@ public class InitializationReplyValidator {
 	}
 
 	protected void checkPublicKey(
-		ProcessingResults<X509CertificateHolder> validationResult) {
-		X509CertificateHolder requestedCertificate = validationResult.getReturnValue();
+		ProcessingResults<CertAndCertPath> validationResult) {
+		X509CertificateHolder requestedCertificate = validationResult.getReturnValue().getCertHolder();
 		if (certTemplate.getPublicKey()!=null &&  !certTemplate.getPublicKey().equals(
 				requestedCertificate.getSubjectPublicKeyInfo())){
 			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,

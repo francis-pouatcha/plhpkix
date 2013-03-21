@@ -2,9 +2,7 @@ package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
 import java.util.Arrays;
 
-import org.adorsys.plh.pkix.core.cmp.message.CertificateValidatingProcessingResult;
 import org.adorsys.plh.pkix.core.cmp.message.PkiMessageChecker;
-import org.adorsys.plh.pkix.core.cmp.registration.RegistrationRequestSendActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.cmp.stores.ErrorMessageHelper;
 import org.adorsys.plh.pkix.core.cmp.stores.OutgoingRequests;
@@ -16,9 +14,8 @@ import org.adorsys.plh.pkix.core.utils.action.ActionHandler;
 import org.adorsys.plh.pkix.core.utils.action.ActionProcessor;
 import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
 import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
+import org.adorsys.plh.pkix.core.utils.store.PKISignedMessageValidator;
 import org.bouncycastle.asn1.cmp.PKIMessage;
-import org.bouncycastle.cert.cmp.ProtectedPKIMessage;
-import org.bouncycastle.i18n.ErrorBundle;
 
 public class InitializationResponseValidationActionProcessor implements ActionProcessor{
 
@@ -41,17 +38,13 @@ public class InitializationResponseValidationActionProcessor implements ActionPr
 		cmpRequest.setResponseMessage(responseMessage);
 		actionContext.put(CMPRequest.class, cmpRequest);
 		try {
-			CertificateValidatingProcessingResult<ProtectedPKIMessage> pr
-			= new PkiMessageChecker().check(responseMessage,contactManager);
+			PKISignedMessageValidator signedMessageValidator = new PkiMessageChecker().check(responseMessage,contactManager);
 			ActionHandler actionHandler = actionContext.get1(ActionHandler.class,null);
 			// Validate Results
-			Action postAction = new InitializationResponseValidationPostAction(actionContext, pr);
+			Action postAction = new InitializationResponseValidationPostAction(actionContext, signedMessageValidator);
 			actionHandler.handle(Arrays.asList(postAction));
 		} catch(PlhUncheckedException e){
 			ErrorMessageHelper.processError(cmpRequest, requests, e.getErrorMessage());
-		} catch (RuntimeException r){
-			ErrorBundle errorMessage = PlhUncheckedException.toErrorMessage(r, RegistrationRequestSendActionProcessor.class.getName()+"#process");
-			ErrorMessageHelper.processError(cmpRequest, requests, errorMessage);
 		}
 	}
 }

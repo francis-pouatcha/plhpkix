@@ -9,5 +9,10 @@ public abstract class CMPMessageValidatorMessages {
 	public static final String CMPMessageValidatorMessages_conformity_macProtectionNotSupported ="CMPMessageValidatorMessages.conformity.macProtectionNotSupported";		
 	public static final String CMPMessageValidatorMessages_conformity_notCertificateSentWithMessage= "CMPMessageValidatorMessages.conformity.notCertificateSentWithMessage";
 
-	public static final String CMPMessageValidatorMessages_certificate_senderNotMatchingCertificate= "CMPMessageValidatorMessages.certificate.senderNotMatchingCertificate";
+	public static final String CMPMessageValidatorMessages_conformity_senderNotMatchingCertificate= "CMPMessageValidatorMessages.certificate.senderNotMatchingCertificate";
+	public static final String CMPMessageValidatorMessages_conformity_canNotParseMessageTime= "CMPMessageValidatorMessages.response.canNotParseMessageTime";
+	public static final String CMPMessageValidatorMessages_conformity_missingMessageTime= "CMPMessageValidatorMessages.response.missingMessageTime";
+
+	public static final String CMPMessageValidatorMessages_conformity_signatureNotValid= "CMPMessageValidatorMessages.conformity.signatureNotValid";
+
 }

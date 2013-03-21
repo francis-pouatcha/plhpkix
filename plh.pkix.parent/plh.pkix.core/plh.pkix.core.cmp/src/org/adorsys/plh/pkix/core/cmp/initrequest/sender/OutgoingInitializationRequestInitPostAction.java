@@ -1,6 +1,6 @@
 package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
-import org.adorsys.plh.pkix.core.cmp.message.DeleteMessageAfterConfirmActionPreProcessor;
+import org.adorsys.plh.pkix.core.cmp.message.DeleteMessageActionProcessor;
 import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
@@ -22,15 +22,15 @@ public class OutgoingInitializationRequestInitPostAction extends GenericAction {
 		addProcessor(SEND_OUTCOME, OutgoingInitializationRequestSendActionProcessor.class);
 		// error, park request for user feedback.
 		addProcessor(CANCEL_OUTCOME, NullActionProcessor.class);
-		addProcessor(DELETE_AFTER_CONFIRM_OUTCOME, DeleteMessageAfterConfirmActionPreProcessor.class);
+		addProcessor(DELETE_OUTCOME, DeleteMessageActionProcessor.class);
 		
 		if(processingResults.hasError()){
-			setOutcome(DELETE_AFTER_CONFIRM_OUTCOME);
+			setOutcome(DELETE_OUTCOME);
 		} else if(processingResults.hasReturnValue()){
 			actionContext.put(CMPRequest.class, processingResults.getReturnValue());
 			setOutcome(SEND_OUTCOME);
 		} else {
-			setOutcome(DELETE_AFTER_CONFIRM_OUTCOME);
+			setOutcome(DELETE_OUTCOME);
 		}
 	}
 }

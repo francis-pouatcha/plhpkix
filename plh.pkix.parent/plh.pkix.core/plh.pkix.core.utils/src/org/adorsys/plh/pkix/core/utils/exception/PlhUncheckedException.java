@@ -49,4 +49,25 @@ public class PlhUncheckedException extends RuntimeException {
 				PlhPkixCoreMessages.PlhUncheckedException_uncaught_exception,
 				new Object[] { location.getName(), e.getMessage(),e.getClass().getName()});
     }
+    
+    public static PlhUncheckedException toException(String resName, String messageKey){
+		ErrorBundle msg = new ErrorBundle(resName,messageKey);
+		return new PlhUncheckedException(msg);
+    }
+    
+    public static PlhUncheckedException toException(String resName, String messageKey, Object[] values){
+		ErrorBundle msg = new ErrorBundle(resName,messageKey,values);
+		return new PlhUncheckedException(msg);
+    }
+
+    public static PlhUncheckedException toException(String resName, String messageKey, Exception e, Class<?> location){
+		ErrorBundle msg = new ErrorBundle(resName,messageKey, 
+				new Object[] { location, e.getMessage(),e.getClass().getName()});
+		return new PlhUncheckedException(msg);
+    }
+
+    public static PlhUncheckedException toException(Exception e, Class<?> location){
+		ErrorBundle msg = toErrorMessage(e, location);
+		return new PlhUncheckedException(msg);
+    }
 }

@@ -29,7 +29,7 @@
 		<repository>
 			<id>orbit</id>
 			<layout>p2</layout>
-			<url>http://download.eclipse.org/tools/orbit/downloads/drops/I20130115141820/repository</url>
+			<url>http://download.eclipse.org/tools/orbit/downloads/drops/S20130308121626/repository</url>
 		</repository>
 		<repository>
 			<id>gemini</id>

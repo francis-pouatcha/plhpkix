@@ -29,6 +29,8 @@ public class GeneralCertValidator {
 	private X509Certificate cert;
 	private PKIXParameters params;
 
+	private CertPathAndOrigin certPathAndOrigin;
+	
 	private BuilderChecker checker = new BuilderChecker(GeneralCertValidator.class);
 
 	public GeneralCertValidator validate(Date signTime) throws SignedMailValidatorException {
@@ -41,7 +43,7 @@ public class GeneralCertValidator {
 
 		try {
 
-			CertPathAndOrigin certPathAndOrigin = ValidationUtils.createCertPath(cert,
+			certPathAndOrigin = ValidationUtils.createCertPath(cert,
 					params.getTrustAnchors(),
 					params.getCertStores(), Arrays.asList(senderSupliedCerts));
 
@@ -88,5 +90,9 @@ public class GeneralCertValidator {
 
 	public List<ErrorBundle> getNotifications() {
 		return notifications;
+	}
+
+	public CertPathAndOrigin getCertPathAndOrigin() {
+		return certPathAndOrigin;
 	}
 }

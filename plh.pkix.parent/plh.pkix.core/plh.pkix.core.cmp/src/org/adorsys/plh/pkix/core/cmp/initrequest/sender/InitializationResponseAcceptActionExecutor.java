@@ -1,20 +1,23 @@
 package org.adorsys.plh.pkix.core.cmp.initrequest.sender;
 
-import java.io.IOException;
-import java.security.cert.CertStore;
 import java.security.cert.PKIXParameters;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.adorsys.plh.pkix.core.cmp.initrequest.InitRequestMessages;
 import org.adorsys.plh.pkix.core.cmp.stores.CMPRequest;
+import org.adorsys.plh.pkix.core.smime.contact.ContactManagerImpl;
 import org.adorsys.plh.pkix.core.utils.BuilderChecker;
 import org.adorsys.plh.pkix.core.utils.KeyIdUtils;
-import org.adorsys.plh.pkix.core.utils.ProviderUtils;
 import org.adorsys.plh.pkix.core.utils.V3CertificateUtils;
 import org.adorsys.plh.pkix.core.utils.action.ActionContext;
 import org.adorsys.plh.pkix.core.utils.action.ProcessingResults;
-import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertChainValidationResult;
-import org.adorsys.plh.pkix.core.utils.asn1.ASN1CertChainValidationResults;
+import org.adorsys.plh.pkix.core.utils.contact.ContactManager;
+import org.adorsys.plh.pkix.core.utils.exception.PlhUncheckedException;
+import org.adorsys.plh.pkix.core.utils.jca.PKIXParametersFactory;
+import org.adorsys.plh.pkix.core.utils.store.CertAndCertPath;
+import org.adorsys.plh.pkix.core.utils.store.CertPathAndOrigin;
 import org.adorsys.plh.pkix.core.utils.store.GeneralCertValidator;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.cmp.CMPCertificate;
@@ -25,10 +28,8 @@ import org.bouncycastle.asn1.cmp.PKIMessage;
 import org.bouncycastle.asn1.crmf.CertReqMessages;
 import org.bouncycastle.asn1.crmf.CertReqMsg;
 import org.bouncycastle.asn1.crmf.CertTemplate;
-import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaCertStoreBuilder;
-import org.bouncycastle.i18n.ErrorBundle;
+import org.bouncycastle.mail.smime.validator.SignedMailValidatorException;
 
 /**
  * Processes a initialization response.
@@ -64,29 +65,24 @@ public class InitializationResponseAcceptActionExecutor {
 	private final BuilderChecker checker = new BuilderChecker(
 			InitializationResponseAcceptActionExecutor.class);
 	
-	public ProcessingResults<ASN1CertChainValidationResult> execute() {
+	public List<ProcessingResults<CertAndCertPath>> execute() {
 
 		checker.checkDirty().checkNull(actionContext);
-		CMPRequest cmpRequest = actionContext.get(CMPRequest.class);
-		checker.checkDirty().checkNull(cmpRequest);
-		ProcessingResults<ASN1CertChainValidationResult> pr = 
-				new ProcessingResults<ASN1CertChainValidationResult>();
+		CMPRequest cmpRequest = actionContext.get1(CMPRequest.class);
+		ContactManager contactManager = actionContext.get1(ContactManagerImpl.class);
+		checker.checkDirty().checkNull(cmpRequest, contactManager);
 		
 		CertReqMessages certReqMessages = CertReqMessages
 				.getInstance(cmpRequest.getPkiMessage().getBody().getContent());
 		CertReqMsg[] certReqMsgArray = certReqMessages.toCertReqMsgArray();
-		if(certReqMsgArray==null || certReqMsgArray.length<=0){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+		if(certReqMsgArray==null || certReqMsgArray.length<=0)
+			throw PlhUncheckedException.toException(RESOURCE_NAME,
 					InitRequestMessages.InitRequestMessages_request_noCertrequestMessageInHolder);
-			pr.addError(msg);
-			return pr;
-		}
 
-		if(certReqMsgArray.length>1){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+		if(certReqMsgArray.length>1)
+			throw PlhUncheckedException.toException(RESOURCE_NAME,
 					InitRequestMessages.InitRequestMessages_request_processOnlyFirstcertRequestMessage);
-			pr.addNotification(msg);
-		}
+		
 		CertReqMsg certReqMsg = certReqMsgArray[0];
 		ASN1Integer certReqId=certReqMsg.getCertReq().getCertReqId();
 		// the original template
@@ -94,79 +90,73 @@ public class InitializationResponseAcceptActionExecutor {
 		
 		PKIMessage responseMessage = cmpRequest.getResponseMessage();
 		CertRepMessage certRepMessage = CertRepMessage.getInstance(responseMessage.getBody().getContent());
-		CMPCertificate[] caPubs = certRepMessage.getCaPubs();
-		JcaCertStoreBuilder storeBuilder = new JcaCertStoreBuilder()
-			.setProvider(ProviderUtils.bcProvider);
-		for (CMPCertificate cmpCertificate : caPubs) {
-			X509CertificateHolder certificateHolder = new X509CertificateHolder(cmpCertificate.getX509v3PKCert());
-			storeBuilder.addCertificate(certificateHolder);
-		}
-		CertStore senderSupliedCerts = storeBuilder.build();
-		PKIXParameters pkixParam = new PKIXParameters(trustAnchors);
-			
+
 		// check that sender is the addressed CA
 		CertResponse[] response = certRepMessage.getResponse();
-		if(response.length<=0){
-			ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+		if(response.length<=0)
+			throw PlhUncheckedException.toException(RESOURCE_NAME,
 					InitRequestMessages.InitRequestMessages_response_certResponseEmpty);
-			pr.addError(msg);
-			return pr;
+
+		CMPCertificate[] caPubs = certRepMessage.getCaPubs();
+		// put all certificate including caPubs in this array
+		List<X509CertificateHolder> caCertificates = new ArrayList<X509CertificateHolder>();
+		for (CMPCertificate cmpCertificate : caPubs) {
+			caCertificates.add(new X509CertificateHolder(cmpCertificate.getX509v3PKCert()));
 		}
 		
 		// iterate through the cert response and build the certification path.
+		List<X509CertificateHolder> requestedCerts = new ArrayList<X509CertificateHolder>();
 		for (int i = 0; i < response.length; i++) {
 			CertResponse certResponse = response[i];
 			ASN1Integer crid = certResponse.getCertReqId();
-			if(crid == null){// : "Missing cert request id, do not process";
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						InitRequestMessages.InitRequestMessages_response_missingCertRequestId);
-				pr.addError(msg);
-				return pr;
-			}
 			
-			if(certReqId.equals(crid)){
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
+			if(crid == null)// : "Missing cert request id, do not process";
+				throw PlhUncheckedException.toException(RESOURCE_NAME,
+						InitRequestMessages.InitRequestMessages_response_missingCertRequestId);
+			
+			if(!certReqId.equals(crid))
+				throw PlhUncheckedException.toException(RESOURCE_NAME,
 						InitRequestMessages.InitRequestMessages_response_wrongCertRequestId,
 						new Object[]{KeyIdUtils.hexEncode(crid),
 						KeyIdUtils.hexEncode(certReqId),
 						KeyIdUtils.hexEncode(cmpRequest.getTransactionID())});
-				pr.addError(msg);
-				return pr;
-			}
-
-			try {
-				CertOrEncCert certOrEncCert = certResponse
-						.getCertifiedKeyPair().getCertOrEncCert();
-				CMPCertificate cmpCertificate = certOrEncCert.getCertificate();
-				new GeneralCertValidator()
-					.withPKIXParameters(pkixParam)
-					.withSenderSupliedCerts(senderSupliedCerts)
-					.validate();
-			} catch (IOException e) {
-				ErrorBundle msg = new ErrorBundle(RESOURCE_NAME,
-						"InitRequestMessages.response.canNotReadCertificate");
-				pr.addError(msg);
-				return pr;
-			}
+			
+			CertOrEncCert certOrEncCert = certResponse
+					.getCertifiedKeyPair().getCertOrEncCert();
+			CMPCertificate cmpCertificate = certOrEncCert.getCertificate();
+			requestedCerts.add(new X509CertificateHolder(cmpCertificate.getX509v3PKCert()));
 		}
 
-		ASN1CertChainValidationResult certChainValidationResult = new ASN1CertChainValidationResult(cmpRequest.getTransactionID(), certificates);
-		new InitializationReplyValidator()
-			.withCertTemplate(certTemplate)
-			.validate(processingResults);
+		List<X509CertificateHolder> allCertificates = new ArrayList<X509CertificateHolder>(requestedCerts);
+		allCertificates.addAll(caCertificates);
+		PKIXParameters params = PKIXParametersFactory.makeParams(
+				contactManager.getTrustAnchors(),
+				contactManager.getCrl(),
+				contactManager.findCertStores(allCertificates));
 		
-		// the first certificate
-		List<List<X509CertificateHolder>> certChains = V3CertificateUtils.splitCertList(certificateChain);
-		for (List<X509CertificateHolder> list : certChains) {
-			ProcessingResults<List<X509CertificateHolder>> processingResults = new ProcessingResults<List<X509CertificateHolder>>();
-			processingResults.setReturnValue(list);
+		List<ProcessingResults<CertAndCertPath>> certValidationResults = new ArrayList<ProcessingResults<CertAndCertPath>>(requestedCerts.size());
+		for (X509CertificateHolder x509CertificateHolder : requestedCerts) {
+			ProcessingResults<CertAndCertPath> processingResults = new ProcessingResults<CertAndCertPath>();
+			GeneralCertValidator generalCertValidator;
+			try {
+				generalCertValidator = new GeneralCertValidator()
+					.withPKIXParameters(params)
+					.withSenderSupliedCerts(V3CertificateUtils.createCertStore(allCertificates))
+					.validate(new Date());
+				CertPathAndOrigin certPathAndOrigin = generalCertValidator.getCertPathAndOrigin();
+				processingResults.setReturnValue(new CertAndCertPath(x509CertificateHolder, certPathAndOrigin));
+				processingResults.addErrors(generalCertValidator.getErrors());
+				processingResults.addNotifications(generalCertValidator.getNotifications());
+				new InitializationReplyValidator()
+					.withCertTemplate(certTemplate)
+					.validate(processingResults);
+			} catch (SignedMailValidatorException e) {
+				processingResults.addError(e.getErrorMessage());
+			}
+			certValidationResults.add(processingResults);
 		}
-		if(!pr.hasReturnValue())pr.setReturnValue(certChains);
-								
-		new InitializationReplyValidator()
-			.withCertTemplate(certTemplate)
-			.validate(pr);
-		return pr;
+
+		return certValidationResults;
 	}
 
 	public InitializationResponseAcceptActionExecutor withActionContext(ActionContext actionContext) {
